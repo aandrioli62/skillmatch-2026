@@ -1,0 +1,220 @@
+version: "3.9"
+
+# ── Shared network ────────────────────────────────────────────────────────────
+networks:
+  skillmatch-net:
+    driver: bridge
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+volumes:
+  postgres-data:
+  mongo-data:
+  rabbitmq-data:
+
+# ── Services ──────────────────────────────────────────────────────────────────
+services:
+
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: skillmatch
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    ports:
+      - "5432:5432"
+    networks: [skillmatch-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skillmatch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: skillmatch
+      MONGO_INITDB_ROOT_PASSWORD: secret
+      MONGO_INITDB_DATABASE: notification-db
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    networks: [skillmatch-net]
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks: [skillmatch-net]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/identity-db
+      KC_DB_USERNAME: skillmatch
+      KC_DB_PASSWORD: secret
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    ports:
+      - "8180:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [skillmatch-net]
+
+  # ── Microservices ────────────────────────────────────────────────────────────
+
+  api-gateway:
+    build:
+      context: ../services/api-gateway
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8080
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+      USER_SERVICE_HOST: user-service
+      PROJECT_SERVICE_HOST: project-service
+      CONTRACT_SERVICE_HOST: contract-service
+      PAYMENT_SERVICE_HOST: payment-service
+      FEEDBACK_SERVICE_HOST: feedback-service
+      NOTIFICATION_SERVICE_HOST: notification-service
+    ports:
+      - "8080:8080"
+    depends_on: [keycloak]
+    networks: [skillmatch-net]
+
+  user-service:
+    build:
+      context: ../services/user-service
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8081
+      DB_HOST: postgres
+      DB_NAME: user-db
+      DB_USERNAME: skillmatch
+      DB_PASSWORD: secret
+      RABBITMQ_HOST: rabbitmq
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [skillmatch-net]
+
+  project-service:
+    build:
+      context: ../services/project-service
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8082
+      DB_HOST: postgres
+      DB_NAME: project-db
+      DB_USERNAME: skillmatch
+      DB_PASSWORD: secret
+      RABBITMQ_HOST: rabbitmq
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [skillmatch-net]
+
+  contract-service:
+    build:
+      context: ../services/contract-service
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8083
+      DB_HOST: postgres
+      DB_NAME: contract-db
+      DB_USERNAME: skillmatch
+      DB_PASSWORD: secret
+      RABBITMQ_HOST: rabbitmq
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [skillmatch-net]
+
+  payment-service:
+    build:
+      context: ../services/payment-service
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8084
+      DB_HOST: postgres
+      DB_NAME: payment-db
+      DB_USERNAME: skillmatch
+      DB_PASSWORD: secret
+      RABBITMQ_HOST: rabbitmq
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [skillmatch-net]
+
+  feedback-service:
+    build:
+      context: ../services/feedback-service
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8085
+      DB_HOST: postgres
+      DB_NAME: feedback-db
+      DB_USERNAME: skillmatch
+      DB_PASSWORD: secret
+      RABBITMQ_HOST: rabbitmq
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks: [skillmatch-net]
+
+  notification-service:
+    build:
+      context: ../services/notification-service
+      dockerfile: Dockerfile
+    environment:
+      SERVER_PORT: 8086
+      MONGO_HOST: mongo
+      MONGO_DB: notification-db
+      MONGO_USERNAME: skillmatch
+      MONGO_PASSWORD: secret
+      RABBITMQ_HOST: rabbitmq
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+    depends_on: [mongo, rabbitmq]
+    networks: [skillmatch-net]

@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://${USER_SERVICE_HOST:user-service}:${USER_SERVICE_PORT:8081}
+          predicates:
+            - Path=/api/v1/users/**, /api/v1/professionals/**, /api/v1/companies/**
+        - id: project-service
+          uri: http://${PROJECT_SERVICE_HOST:project-service}:${PROJECT_SERVICE_PORT:8082}
+          predicates:
+            - Path=/api/v1/projects/**, /api/v1/candidatures/**
+        - id: contract-service
+          uri: http://${CONTRACT_SERVICE_HOST:contract-service}:${CONTRACT_SERVICE_PORT:8083}
+          predicates:
+            - Path=/api/v1/contracts/**
+        - id: payment-service
+          uri: http://${PAYMENT_SERVICE_HOST:payment-service}:${PAYMENT_SERVICE_PORT:8084}
+          predicates:
+            - Path=/api/v1/payments/**, /api/v1/transactions/**
+        - id: feedback-service
+          uri: http://${FEEDBACK_SERVICE_HOST:feedback-service}:${FEEDBACK_SERVICE_PORT:8085}
+          predicates:
+            - Path=/api/v1/feedbacks/**
+        - id: notification-service
+          uri: http://${NOTIFICATION_SERVICE_HOST:notification-service}:${NOTIFICATION_SERVICE_PORT:8086}
+          predicates:
+            - Path=/api/v1/notifications/**
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/skillmatch}
+          jwk-set-uri: ${KEYCLOAK_JWK_URI:http://localhost:8180/realms/skillmatch/protocol/openid-connect/certs}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      default:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+
+logging:
+  structured:
+    format:
+      console: json

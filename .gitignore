@@ -1,0 +1,116 @@
+# ── Java / Maven ────────────────────────────────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+!**/maven-wrapper.jar
+.mvn/wrapper/MavenWrapperDownloader.java
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+.idea_modules/
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# VS Code (Java)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# ── Node / npm / React ──────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+frontend/dist/
+frontend/dist-ssr/
+frontend/build/
+frontend/.vite/
+frontend/.parcel-cache/
+
+*.local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# ── Docker ───────────────────────────────────────────────────────────────────────
+# Docker ignore files are per-service (.dockerignore)
+# Sensitive docker env overrides
+docker-compose.override.yml
+.docker/
+
+# ── Secrets & credentials ────────────────────────────────────────────────────────
+*.pem
+*.key
+*.p12
+*.jks
+*.pfx
+secrets/
+infra/k8s/**/*-secret.yaml
+infra/k8s/**/*-secrets.yaml
+.env.prod
+.env.production
+
+# ── OS artefacts ─────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Logs ─────────────────────────────────────────────────────────────────────────
+logs/
+*.log
+spring.log
+
+# ── Kubernetes generated files ───────────────────────────────────────────────────
+infra/k8s/**/*.generated.yaml
+
+# ── Test reports & coverage ──────────────────────────────────────────────────────
+**/surefire-reports/
+**/failsafe-reports/
+**/jacoco/
+**/coverage/
+lcov.info
