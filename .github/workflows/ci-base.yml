@@ -1,0 +1,22 @@
+name: CI Base
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-compose:
+    name: Validate docker-compose.yml
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml
+        working-directory: infra
+        run: docker compose -f docker-compose.yml config --quiet
