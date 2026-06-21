@@ -1,5 +1,3 @@
-version: "3.9"
-
 # ── Shared network ────────────────────────────────────────────────────────────
 networks:
   skillmatch-net:
@@ -21,7 +19,7 @@ services:
     environment:
       POSTGRES_USER: skillmatch
       POSTGRES_PASSWORD: secret
-      POSTGRES_DB: postgres
+      POSTGRES_DB: identitydb
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
@@ -39,7 +37,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: skillmatch
       MONGO_INITDB_ROOT_PASSWORD: secret
-      MONGO_INITDB_DATABASE: notification-db
+      MONGO_INITDB_DATABASE: notificationdb
     volumes:
       - mongo-data:/data/db
     ports:
@@ -47,7 +45,7 @@ services:
     networks: [skillmatch-net]
 
   rabbitmq:
-    image: rabbitmq:3.13-management-alpine
+    image: rabbitmq:3-management
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -64,19 +62,21 @@ services:
       retries: 5
 
   keycloak:
-    image: quay.io/keycloak/keycloak:25.0
-    command: start-dev --import-realm
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev --http-port=8180 --import-realm
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/identity-db
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_DATABASE: identitydb
       KC_DB_USERNAME: skillmatch
       KC_DB_PASSWORD: secret
+      KC_HOSTNAME: localhost
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
     volumes:
       - ./keycloak:/opt/keycloak/data/import:ro
     ports:
-      - "8180:8080"
+      - "8180:8180"
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,18 +86,19 @@ services:
 
   api-gateway:
     build:
-      context: ../services/api-gateway
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/api-gateway/Dockerfile
     environment:
       SERVER_PORT: 8080
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
       USER_SERVICE_HOST: user-service
       PROJECT_SERVICE_HOST: project-service
       CONTRACT_SERVICE_HOST: contract-service
       PAYMENT_SERVICE_HOST: payment-service
       FEEDBACK_SERVICE_HOST: feedback-service
       NOTIFICATION_SERVICE_HOST: notification-service
+      JAVA_OPTS: "-Xmx256m -Xms128m"
     ports:
       - "8080:8080"
     depends_on: [keycloak]
@@ -105,17 +106,18 @@ services:
 
   user-service:
     build:
-      context: ../services/user-service
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/user-service/Dockerfile
     environment:
       SERVER_PORT: 8081
       DB_HOST: postgres
-      DB_NAME: user-db
+      DB_NAME: userdb
       DB_USERNAME: skillmatch
       DB_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      JAVA_OPTS: "-Xmx256m -Xms128m"
     depends_on:
       postgres:
         condition: service_healthy
@@ -125,17 +127,18 @@ services:
 
   project-service:
     build:
-      context: ../services/project-service
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/project-service/Dockerfile
     environment:
       SERVER_PORT: 8082
       DB_HOST: postgres
-      DB_NAME: project-db
+      DB_NAME: projectdb
       DB_USERNAME: skillmatch
       DB_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      JAVA_OPTS: "-Xmx256m -Xms128m"
     depends_on:
       postgres:
         condition: service_healthy
@@ -145,17 +148,18 @@ services:
 
   contract-service:
     build:
-      context: ../services/contract-service
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/contract-service/Dockerfile
     environment:
       SERVER_PORT: 8083
       DB_HOST: postgres
-      DB_NAME: contract-db
+      DB_NAME: contractdb
       DB_USERNAME: skillmatch
       DB_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      JAVA_OPTS: "-Xmx256m -Xms128m"
     depends_on:
       postgres:
         condition: service_healthy
@@ -165,17 +169,18 @@ services:
 
   payment-service:
     build:
-      context: ../services/payment-service
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/payment-service/Dockerfile
     environment:
       SERVER_PORT: 8084
       DB_HOST: postgres
-      DB_NAME: payment-db
+      DB_NAME: paymentdb
       DB_USERNAME: skillmatch
       DB_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      JAVA_OPTS: "-Xmx256m -Xms128m"
     depends_on:
       postgres:
         condition: service_healthy
@@ -185,17 +190,18 @@ services:
 
   feedback-service:
     build:
-      context: ../services/feedback-service
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/feedback-service/Dockerfile
     environment:
       SERVER_PORT: 8085
       DB_HOST: postgres
-      DB_NAME: feedback-db
+      DB_NAME: feedbackdb
       DB_USERNAME: skillmatch
       DB_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      JAVA_OPTS: "-Xmx256m -Xms128m"
     depends_on:
       postgres:
         condition: service_healthy
@@ -205,16 +211,17 @@ services:
 
   notification-service:
     build:
-      context: ../services/notification-service
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: services/notification-service/Dockerfile
     environment:
       SERVER_PORT: 8086
       MONGO_HOST: mongo
-      MONGO_DB: notification-db
+      MONGO_DB: notificationdb
       MONGO_USERNAME: skillmatch
       MONGO_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      JAVA_OPTS: "-Xmx256m -Xms128m"
     depends_on: [mongo, rabbitmq]
     networks: [skillmatch-net]

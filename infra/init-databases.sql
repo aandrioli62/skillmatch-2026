@@ -1,18 +1,15 @@
 -- SkillMatch — initialise all logical databases on a single PostgreSQL instance
--- Run once on first deploy: psql -U postgres -f init-databases.sql
+-- identitydb is created automatically via POSTGRES_DB env var
+-- skillmatch user is created automatically via POSTGRES_USER env var
 
-CREATE USER skillmatch WITH PASSWORD 'secret';
+CREATE DATABASE userdb;
+CREATE DATABASE projectdb;
+CREATE DATABASE contractdb;
+CREATE DATABASE paymentdb;
+CREATE DATABASE feedbackdb;
 
-CREATE DATABASE "user-db"         OWNER skillmatch;
-CREATE DATABASE "project-db"      OWNER skillmatch;
-CREATE DATABASE "contract-db"     OWNER skillmatch;
-CREATE DATABASE "payment-db"      OWNER skillmatch;
-CREATE DATABASE "feedback-db"     OWNER skillmatch;
-CREATE DATABASE "identity-db"     OWNER skillmatch;  -- Keycloak
-
-GRANT ALL PRIVILEGES ON DATABASE "user-db"      TO skillmatch;
-GRANT ALL PRIVILEGES ON DATABASE "project-db"   TO skillmatch;
-GRANT ALL PRIVILEGES ON DATABASE "contract-db"  TO skillmatch;
-GRANT ALL PRIVILEGES ON DATABASE "payment-db"   TO skillmatch;
-GRANT ALL PRIVILEGES ON DATABASE "feedback-db"  TO skillmatch;
-GRANT ALL PRIVILEGES ON DATABASE "identity-db"  TO skillmatch;
+GRANT ALL PRIVILEGES ON DATABASE userdb      TO skillmatch;
+GRANT ALL PRIVILEGES ON DATABASE projectdb   TO skillmatch;
+GRANT ALL PRIVILEGES ON DATABASE contractdb  TO skillmatch;
+GRANT ALL PRIVILEGES ON DATABASE paymentdb   TO skillmatch;
+GRANT ALL PRIVILEGES ON DATABASE feedbackdb  TO skillmatch;
