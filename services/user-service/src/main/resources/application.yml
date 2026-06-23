@@ -2,7 +2,7 @@ spring:
   application:
     name: user-service
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:user-db}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:userdb}
     username: ${DB_USERNAME:skillmatch}
     password: ${DB_PASSWORD:secret}
   jpa:
@@ -55,3 +55,23 @@ logging:
   structured:
     format:
       console: json
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    com.skillmatch: DEBUG
+    org.springframework.security: DEBUG
+
+springdoc:
+  swagger-ui:
+    try-it-out-enabled: true

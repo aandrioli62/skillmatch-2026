@@ -1,0 +1,111 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+# ----------------------------------------------------------------------------
+
+# Apache Maven Wrapper startup script, version 3.3.2
+
+# ---- helper functions (must be defined before first use) -------------------
+die() {
+  printf 'ERROR: %s\n' "$1" >&2
+  exit 1
+}
+
+log() {
+  if [ "${MVNW_VERBOSE:-}" = "true" ]; then
+    printf '%s\n' "$1"
+  fi
+}
+
+# ---- locate Java ------------------------------------------------------------
+if [ -n "${JAVA_HOME:-}" ]; then
+  if [ -x "$JAVA_HOME/jre/sh/java" ]; then
+    JAVACMD="$JAVA_HOME/jre/sh/java"
+  else
+    JAVACMD="$JAVA_HOME/bin/java"
+  fi
+  [ -x "$JAVACMD" ] || die "JAVA_HOME points to an invalid directory: $JAVA_HOME"
+else
+  JAVACMD="$(command -v java 2>/dev/null)" || die "Java not found. Please install Java 21:
+  sudo apt install -y openjdk-21-jdk"
+fi
+
+# ---- find base directory (contains .mvn/) -----------------------------------
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BASE_DIR="$SCRIPT_DIR"
+wdir="$SCRIPT_DIR"
+while [ "$wdir" != "/" ]; do
+  if [ -d "$wdir/.mvn" ]; then
+    BASE_DIR="$wdir"
+    break
+  fi
+  wdir="$(cd "$wdir/.." && pwd)"
+done
+
+# ---- read distribution URL --------------------------------------------------
+PROPERTIES_FILE="$BASE_DIR/.mvn/wrapper/maven-wrapper.properties"
+[ -f "$PROPERTIES_FILE" ] || die "$PROPERTIES_FILE not found."
+
+distributionUrl=""
+while IFS="=" read -r key val; do
+  # strip leading/trailing whitespace from key
+  key="$(printf '%s' "$key" | tr -d ' \r')"
+  val="$(printf '%s' "$val" | tr -d ' \r')"
+  if [ "$key" = "distributionUrl" ]; then
+    distributionUrl="$val"
+  fi
+done < "$PROPERTIES_FILE"
+
+[ -n "$distributionUrl" ] || die "distributionUrl not set in $PROPERTIES_FILE"
+
+# ---- resolve Maven home -----------------------------------------------------
+DIST_FILENAME="${distributionUrl##*/}"
+DIST_ID="${DIST_FILENAME%.zip}"
+MAVEN_USER_HOME="${MAVEN_USER_HOME:-$HOME/.m2/wrapper/dists}"
+MAVEN_HOME="$MAVEN_USER_HOME/$DIST_ID"
+
+log "Maven home: $MAVEN_HOME"
+
+if [ ! -d "$MAVEN_HOME/bin" ]; then
+  log "Downloading Maven from $distributionUrl ..."
+  command -v unzip >/dev/null 2>&1 || die "'unzip' is required. Install it with: sudo apt install -y unzip"
+  TMP_DIR="$(mktemp -d)"
+  trap 'rm -rf "$TMP_DIR"' EXIT INT TERM
+  ZIP_FILE="$TMP_DIR/maven.zip"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL --retry 3 -o "$ZIP_FILE" "$distributionUrl" || die "Download failed: $distributionUrl"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q -O "$ZIP_FILE" "$distributionUrl" || die "Download failed: $distributionUrl"
+  else
+    die "Neither curl nor wget found. Cannot download Maven."
+  fi
+  mkdir -p "$MAVEN_USER_HOME"
+  unzip -q "$ZIP_FILE" -d "$MAVEN_USER_HOME" || die "Failed to unzip Maven archive."
+  # Maven zip extracts to apache-maven-X.Y.Z/; rename to DIST_ID
+  EXTRACTED="$(find "$MAVEN_USER_HOME" -maxdepth 1 -type d -name 'apache-maven-*' | head -1)"
+  if [ -n "$EXTRACTED" ] && [ "$EXTRACTED" != "$MAVEN_HOME" ]; then
+    mv "$EXTRACTED" "$MAVEN_HOME"
+  fi
+  log "Maven installed to $MAVEN_HOME"
+fi
+
+MAVEN_CMD="$MAVEN_HOME/bin/mvn"
+[ -f "$MAVEN_CMD" ] || die "mvn not found in $MAVEN_HOME/bin. Try removing $MAVEN_HOME and re-running."
+[ -x "$MAVEN_CMD" ] || chmod +x "$MAVEN_CMD"
+
+exec "$MAVEN_CMD" "$@"
