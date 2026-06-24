@@ -25,6 +25,8 @@ import com.skillmatch.userservice.repository.ProfessionalProfileRepository;
 import com.skillmatch.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -231,6 +233,12 @@ public class UserServiceImpl implements UserService {
 
         log.info("Reputation updated: userId={}, avgRating={}, totalReviews={}, level={}",
                 userId, avgRating, totalReviews, profile.getReputationLevel());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserResponse> listUsers(Pageable pageable) {
+        return userRepository.findAll(pageable).map(userMapper::toResponse);
     }
 
     // =========================================================================

@@ -50,6 +50,9 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+  packages-to-scan: com.skillmatch.userservice
 
 logging:
   structured:

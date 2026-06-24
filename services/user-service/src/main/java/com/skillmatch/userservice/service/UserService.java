@@ -6,6 +6,8 @@ import com.skillmatch.userservice.dto.request.UserRegistrationRequest;
 import com.skillmatch.userservice.dto.response.CompanyProfileResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -79,4 +81,9 @@ public interface UserService {
      * @throws com.skillmatch.userservice.exception.UserNotFoundException if no professional profile found for userId
      */
     void updateReputation(UUID userId, BigDecimal avgRating, Integer totalReviews);
+
+    /**
+     * Admin: returns a paginated list of all users ordered by creation date descending.
+     */
+    Page<UserResponse> listUsers(Pageable pageable);
 }
