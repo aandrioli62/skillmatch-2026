@@ -26,6 +26,8 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").permitAll()
                 // OpenAPI / Swagger UI
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                // Public registration endpoint
+                .requestMatchers(HttpMethod.POST, "/api/v1/users/register").permitAll()
                 // Admin endpoints — further restricted by @PreAuthorize on the controller
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 // All other API endpoints require authentication
