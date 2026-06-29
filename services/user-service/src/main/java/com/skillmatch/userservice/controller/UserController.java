@@ -85,7 +85,7 @@ public class UserController {
     @GetMapping("/{userId}")
     public ResponseEntity<UserResponse> getUserProfile(
             @Parameter(description = "User UUID", required = true)
-            @PathVariable UUID userId) {
+            @PathVariable("userId") UUID userId) {
         return ResponseEntity.ok(userService.getUserProfile(userId));
     }
 
@@ -112,7 +112,7 @@ public class UserController {
     @PreAuthorize("hasRole('PROFESSIONAL')")
     public ResponseEntity<ProfessionalProfileResponse> updateProfessionalProfile(
             @Parameter(description = "User UUID", required = true)
-            @PathVariable UUID userId,
+            @PathVariable("userId") UUID userId,
             @Valid @RequestBody ProfessionalProfileRequest request) {
         return ResponseEntity.ok(userService.updateProfessionalProfile(userId, request));
     }
@@ -140,7 +140,7 @@ public class UserController {
     @PreAuthorize("hasRole('COMPANY')")
     public ResponseEntity<CompanyProfileResponse> updateCompanyProfile(
             @Parameter(description = "User UUID", required = true)
-            @PathVariable UUID userId,
+            @PathVariable("userId") UUID userId,
             @Valid @RequestBody CompanyProfileRequest request) {
         return ResponseEntity.ok(userService.updateCompanyProfile(userId, request));
     }
@@ -163,7 +163,7 @@ public class UserController {
     @GetMapping("/professionals/search")
     public ResponseEntity<List<ProfessionalProfileResponse>> searchProfessionalsBySkill(
             @Parameter(description = "Skill name to search for", required = true, example = "Java")
-            @RequestParam @NotBlank(message = "Skill name must not be blank") String skill) {
+            @RequestParam("skill") @NotBlank(message = "Skill name must not be blank") String skill) {
         return ResponseEntity.ok(userService.searchProfessionalsBySkill(skill));
     }
 }

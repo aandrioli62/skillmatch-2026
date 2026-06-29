@@ -79,7 +79,7 @@ public class AdminUserController {
     @PostMapping("/{userId}/validate")
     public ResponseEntity<UserResponse> validateProfessional(
             @Parameter(description = "UUID of the professional to validate", required = true)
-            @PathVariable UUID userId) {
+            @PathVariable("userId") UUID userId) {
         return ResponseEntity.ok(userService.validateProfessional(userId));
     }
 
@@ -105,7 +105,7 @@ public class AdminUserController {
     @PostMapping("/{userId}/suspend")
     public ResponseEntity<UserResponse> suspendUser(
             @Parameter(description = "UUID of the user to suspend", required = true)
-            @PathVariable UUID userId) {
+            @PathVariable("userId") UUID userId) {
         return ResponseEntity.ok(userService.suspendUser(userId));
     }
 }
