@@ -20,14 +20,14 @@ public class RabbitMQConfig {
     public static final String EXCHANGE = "skillmatch.events";
 
     // Queues consumed by this service
-    public static final String FEEDBACK_SUBMITTED_QUEUE = "user-service.feedback.submitted";
+    public static final String FEEDBACK_AGGREGATED_QUEUE = "user-service.feedback.aggregated";
 
     // Routing keys this service publishes
     public static final String ROUTING_KEY_USER_REGISTERED = "user.registered";
     public static final String ROUTING_KEY_USER_VALIDATED  = "user.validated";
 
     // Routing keys this service subscribes to
-    public static final String ROUTING_KEY_FEEDBACK_SUBMITTED = "feedback.submitted";
+    public static final String ROUTING_KEY_FEEDBACK_AGGREGATED = "feedback.aggregated";
 
     @Bean
     public TopicExchange skillmatchExchange() {
@@ -35,15 +35,15 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue feedbackSubmittedQueue() {
-        return QueueBuilder.durable(FEEDBACK_SUBMITTED_QUEUE).build();
+    public Queue feedbackAggregatedQueue() {
+        return QueueBuilder.durable(FEEDBACK_AGGREGATED_QUEUE).build();
     }
 
     @Bean
-    public Binding feedbackSubmittedBinding(Queue feedbackSubmittedQueue, TopicExchange skillmatchExchange) {
-        return BindingBuilder.bind(feedbackSubmittedQueue)
+    public Binding feedbackAggregatedBinding(Queue feedbackAggregatedQueue, TopicExchange skillmatchExchange) {
+        return BindingBuilder.bind(feedbackAggregatedQueue)
                 .to(skillmatchExchange)
-                .with(ROUTING_KEY_FEEDBACK_SUBMITTED);
+                .with(ROUTING_KEY_FEEDBACK_AGGREGATED);
     }
 
     @Bean

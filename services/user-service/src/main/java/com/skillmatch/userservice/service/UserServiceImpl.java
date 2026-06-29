@@ -55,7 +55,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository                userRepository;
     private final ProfessionalProfileRepository professionalProfileRepository;
     private final CompanyProfileRepository      companyProfileRepository;
-    private final UserEventPublisher            eventPublisher;
+    private final EventPublisherService         eventPublisher;
     private final UserMapper                    userMapper;
     private final ProfessionalProfileMapper     professionalProfileMapper;
     private final CompanyProfileMapper          companyProfileMapper;

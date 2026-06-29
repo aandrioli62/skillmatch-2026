@@ -6,17 +6,19 @@ import com.skillmatch.userservice.event.UserValidatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.stereotype.Component;
 
-/**
- * @deprecated Replaced by {@link EventPublisherService}.
- */
-@Deprecated(since = "1.0", forRemoval = true)
+@Component
 @RequiredArgsConstructor
 @Slf4j
-class UserEventPublisher {
+public class EventPublisherService {
 
     private final AmqpTemplate amqpTemplate;
 
+    /**
+     * Publishes a {@code user.registered} event to the {@code skillmatch.events} exchange.
+     * Consumed by notification-service and any other interested subscribers.
+     */
     public void publishUserRegistered(UserRegisteredEvent event) {
         amqpTemplate.convertAndSend(
                 RabbitMQConfig.EXCHANGE,
@@ -26,6 +28,10 @@ class UserEventPublisher {
                 event.getData().getUserId(), event.getData().getEmail());
     }
 
+    /**
+     * Publishes a {@code user.validated} event to the {@code skillmatch.events} exchange.
+     * Signals that an admin has validated the professional's account.
+     */
     public void publishUserValidated(UserValidatedEvent event) {
         amqpTemplate.convertAndSend(
                 RabbitMQConfig.EXCHANGE,
