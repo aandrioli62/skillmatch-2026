@@ -4,8 +4,10 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -59,6 +61,28 @@ public class GlobalExceptionHandler {
     }
 
     // -------------------------------------------------------------------------
+    // Security exceptions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Method-level {@code @PreAuthorize} denials are thrown from inside the controller method
+     * invocation, so they never reach Spring Security's ExceptionTranslationFilter (which only
+     * sees exceptions escaping the whole filter chain) — they land here instead. Without this
+     * handler they would fall through to the generic 500 handler below.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN,
+                "You do not have permission to perform this operation.");
+        problem.setType(URI.create(PROBLEM_BASE_URI + "access-denied"));
+        problem.setTitle("Access Denied");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    // -------------------------------------------------------------------------
     // Validation exceptions
     // -------------------------------------------------------------------------
 
@@ -105,6 +129,21 @@ public class GlobalExceptionHandler {
         problem.setType(URI.create(PROBLEM_BASE_URI + "validation-error"));
         problem.setTitle("Validation Error");
         problem.setProperty("errors", violations);
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    /**
+     * Handles a required @RequestParam that is missing entirely from the query string
+     * (e.g. /professionals/search with no ?skill= at all — distinct from an empty value,
+     * which is caught by handleConstraintViolation via @NotBlank).
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ProblemDetail handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
+        log.warn("Missing request parameter: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setType(URI.create(PROBLEM_BASE_URI + "missing-parameter"));
+        problem.setTitle("Missing Parameter");
         problem.setProperty("timestamp", Instant.now());
         return problem;
     }
