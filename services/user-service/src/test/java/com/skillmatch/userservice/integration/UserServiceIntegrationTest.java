@@ -13,6 +13,7 @@ import com.skillmatch.userservice.model.enums.UserRole;
 import com.skillmatch.userservice.repository.SkillRepository;
 import com.skillmatch.userservice.repository.UserRepository;
 import com.skillmatch.userservice.repository.UserSkillRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.AmqpAdmin;
@@ -97,12 +98,21 @@ class UserServiceIntegrationTest {
     @BeforeEach
     void bindTestQueueToDomainEvents() {
         // Bound *before* any action in the test so events published during the test are captured.
-        Queue queue = QueueBuilder.durable("test.user-events." + UUID.randomUUID()).autoDelete().build();
+        // Not auto-delete: RabbitTemplate.receive() subscribes and cancels a transient consumer
+        // per call, and an auto-delete queue is destroyed by the broker as soon as that first
+        // consumer unsubscribes - breaking any test that expects more than one event. The queue
+        // is torn down explicitly in @AfterEach instead.
+        Queue queue = QueueBuilder.durable("test.user-events." + UUID.randomUUID()).build();
         TopicExchange exchange = new TopicExchange(RabbitMQConfig.EXCHANGE, true, false);
         Binding binding = BindingBuilder.bind(queue).to(exchange).with("user.*");
         rabbitAdmin.declareQueue(queue);
         rabbitAdmin.declareBinding(binding);
         eventsQueueName = queue.getName();
+    }
+
+    @AfterEach
+    void deleteTestQueue() {
+        rabbitAdmin.deleteQueue(eventsQueueName);
     }
 
     private String receiveEventType() throws Exception {
@@ -201,8 +211,10 @@ class UserServiceIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.companyName").value("Acme Corp"));
 
-        // A COMPANY account cannot receive a professional profile — rejected by role before it
-        // would even reach the business-rule check, since the caller lacks ROLE_PROFESSIONAL.
+        // The caller holds ROLE_PROFESSIONAL, so it clears @PreAuthorize on the endpoint, but the
+        // target user is a COMPANY account — UserServiceImpl rejects this as a business-rule
+        // violation (InvalidUserOperationException -> 422), the same way re-validating an
+        // already-validated user does above.
         ProfessionalProfileRequest validProfessionalBody = new ProfessionalProfileRequest();
         validProfessionalBody.setFirstName("Not");
         validProfessionalBody.setLastName("Allowed");
@@ -211,7 +223,7 @@ class UserServiceIntegrationTest {
                         .with(jwt().authorities(PROFESSIONAL))
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(validProfessionalBody)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
