@@ -17,4 +17,6 @@ public interface CandidatureRepository extends JpaRepository<Candidature, UUID> 
     Optional<Candidature> findByProjectIdAndProfessionalId(UUID projectId, UUID professionalId);
 
     boolean existsByProjectIdAndStatus(UUID projectId, CandidatureStatus status);
+
+    Optional<Candidature> findFirstByProjectIdAndStatus(UUID projectId, CandidatureStatus status);
 }
