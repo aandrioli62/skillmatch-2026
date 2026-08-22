@@ -30,6 +30,15 @@ public class GlobalExceptionHandler {
     // Domain exceptions
     // -------------------------------------------------------------------------
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Access denied.");
+        problem.setType(URI.create(PROBLEM_BASE_URI + "access-denied"));
+        problem.setTitle("Access Denied");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
     @ExceptionHandler(UserNotFoundException.class)
     public ProblemDetail handleUserNotFound(UserNotFoundException ex) {
         log.warn("User not found: {}", ex.getMessage());
@@ -56,28 +65,6 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
         problem.setType(URI.create(PROBLEM_BASE_URI + "invalid-user-operation"));
         problem.setTitle("Invalid User Operation");
-        problem.setProperty("timestamp", Instant.now());
-        return problem;
-    }
-
-    // -------------------------------------------------------------------------
-    // Security exceptions
-    // -------------------------------------------------------------------------
-
-    /**
-     * Method-level {@code @PreAuthorize} denials are thrown from inside the controller method
-     * invocation, so they never reach Spring Security's ExceptionTranslationFilter (which only
-     * sees exceptions escaping the whole filter chain) — they land here instead. Without this
-     * handler they would fall through to the generic 500 handler below.
-     */
-    @ExceptionHandler(AccessDeniedException.class)
-    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
-        log.warn("Access denied: {}", ex.getMessage());
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.FORBIDDEN,
-                "You do not have permission to perform this operation.");
-        problem.setType(URI.create(PROBLEM_BASE_URI + "access-denied"));
-        problem.setTitle("Access Denied");
         problem.setProperty("timestamp", Instant.now());
         return problem;
     }
@@ -134,9 +121,7 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handles a required @RequestParam that is missing entirely from the query string
-     * (e.g. /professionals/search with no ?skill= at all — distinct from an empty value,
-     * which is caught by handleConstraintViolation via @NotBlank).
+     * Handles missing required @RequestParam values (e.g. ?skill=).
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ProblemDetail handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {

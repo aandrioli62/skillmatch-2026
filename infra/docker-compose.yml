@@ -118,6 +118,8 @@ services:
       KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
       KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
       JAVA_OPTS: "-Xmx256m -Xms128m"
+    ports:
+      - "8081:8081"
     depends_on:
       postgres:
         condition: service_healthy
