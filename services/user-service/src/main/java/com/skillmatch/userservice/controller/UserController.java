@@ -22,6 +22,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -87,6 +89,23 @@ public class UserController {
             @Parameter(description = "User UUID", required = true)
             @PathVariable("userId") UUID userId) {
         return ResponseEntity.ok(userService.getUserProfile(userId));
+    }
+
+    @Operation(
+            summary = "Get the authenticated caller's own profile",
+            description = "Resolves the internal user record (id, role, status) for the currently authenticated "
+                    + "caller, based on the Keycloak subject in the JWT. Lets other services translate a bearer "
+                    + "token into the platform-wide user id used as companyId/professionalId elsewhere."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Caller profile returned",
+                    content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            @ApiResponse(responseCode = "404", description = "No user record linked to this Keycloak identity",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUserProfile(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(userService.getUserProfileByKeycloakId(jwt.getSubject()));
     }
 
     // -------------------------------------------------------------------------

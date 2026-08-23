@@ -105,6 +105,14 @@ public class UserServiceImpl implements UserService {
         return userMapper.toResponse(findUserById(userId));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public UserResponse getUserProfileByKeycloakId(String keycloakId) {
+        User user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new UserNotFoundException("No user found for keycloakId: " + keycloakId));
+        return userMapper.toResponse(user);
+    }
+
     // =========================================================================
     // Profile updates
     // =========================================================================

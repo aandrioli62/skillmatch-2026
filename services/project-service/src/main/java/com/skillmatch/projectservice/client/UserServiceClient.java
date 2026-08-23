@@ -37,7 +37,36 @@ public class UserServiceClient {
     @SuppressWarnings("unused")
     private UserStatusResponse getUserStatusFallback(UUID userId, Throwable ex) {
         log.error("User Service unavailable while checking status for userId={}: {}", userId, ex.getMessage());
-        throw new UserServiceUnavailableException(userId, ex);
+        throw new UserServiceUnavailableException(
+                "Unable to verify status for user id=" + userId, ex);
+    }
+
+    /**
+     * Resolves the internal user record (id, role, status) for the currently authenticated
+     * caller, translating the relayed JWT into the platform-wide user id via User Service's
+     * {@code GET /api/v1/users/me}.
+     */
+    @CircuitBreaker(name = "default", fallbackMethod = "getCurrentUserFallback")
+    public UserStatusResponse getCurrentUser() {
+        return userServiceRestClient.get()
+                .uri("/api/v1/users/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + currentBearerToken())
+                .retrieve()
+                .body(UserStatusResponse.class);
+    }
+
+    @SuppressWarnings("unused")
+    private UserStatusResponse getCurrentUserFallback(Throwable ex) {
+        log.error("User Service unavailable while resolving current user: {}", ex.getMessage());
+        throw new UserServiceUnavailableException(
+                "Unable to resolve the authenticated caller's identity", ex);
+    }
+
+    /**
+     * Convenience wrapper for controllers: returns just the resolved user id.
+     */
+    public UUID resolveCurrentUserId() {
+        return getCurrentUser().getId();
     }
 
     private String currentBearerToken() {

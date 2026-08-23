@@ -31,6 +31,15 @@ public interface UserService {
     UserResponse getUserProfile(UUID userId);
 
     /**
+     * Resolves the internal user record for the authenticated caller, based on the
+     * Keycloak subject (JWT {@code sub} claim). Lets other services translate a JWT
+     * into the platform-wide {@code users.id} used as companyId/professionalId elsewhere.
+     *
+     * @throws com.skillmatch.userservice.exception.UserNotFoundException if no user is linked to this Keycloak id
+     */
+    UserResponse getUserProfileByKeycloakId(String keycloakId);
+
+    /**
      * Creates or updates the professional profile for a given user.
      * The user must have role PROFESSIONAL.
      *
