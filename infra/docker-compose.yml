@@ -70,7 +70,7 @@ services:
       KC_DB_URL_DATABASE: identitydb
       KC_DB_USERNAME: skillmatch
       KC_DB_PASSWORD: secret
-      KC_HOSTNAME: localhost
+      KC_HOSTNAME: host.docker.internal
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
     volumes:
@@ -90,8 +90,8 @@ services:
       dockerfile: services/api-gateway/Dockerfile
     environment:
       SERVER_PORT: 8080
-      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://host.docker.internal:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://host.docker.internal:8180/realms/skillmatch/protocol/openid-connect/certs
       USER_SERVICE_HOST: user-service
       PROJECT_SERVICE_HOST: project-service
       CONTRACT_SERVICE_HOST: contract-service
@@ -101,6 +101,8 @@ services:
       JAVA_OPTS: "-Xmx256m -Xms128m"
     ports:
       - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on: [keycloak]
     networks: [skillmatch-net]
 
@@ -115,11 +117,13 @@ services:
       DB_USERNAME: skillmatch
       DB_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://host.docker.internal:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://host.docker.internal:8180/realms/skillmatch/protocol/openid-connect/certs
       JAVA_OPTS: "-Xmx256m -Xms128m"
     ports:
       - "8081:8081"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -138,9 +142,14 @@ services:
       DB_USERNAME: skillmatch
       DB_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://host.docker.internal:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://host.docker.internal:8180/realms/skillmatch/protocol/openid-connect/certs
+      USER_SERVICE_BASE_URL: http://user-service:8081
       JAVA_OPTS: "-Xmx256m -Xms128m"
+    ports:
+      - "8082:8082"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -159,9 +168,11 @@ services:
       DB_USERNAME: skillmatch
       DB_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://host.docker.internal:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://host.docker.internal:8180/realms/skillmatch/protocol/openid-connect/certs
       JAVA_OPTS: "-Xmx256m -Xms128m"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -180,9 +191,11 @@ services:
       DB_USERNAME: skillmatch
       DB_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://host.docker.internal:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://host.docker.internal:8180/realms/skillmatch/protocol/openid-connect/certs
       JAVA_OPTS: "-Xmx256m -Xms128m"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -201,9 +214,11 @@ services:
       DB_USERNAME: skillmatch
       DB_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://host.docker.internal:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://host.docker.internal:8180/realms/skillmatch/protocol/openid-connect/certs
       JAVA_OPTS: "-Xmx256m -Xms128m"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -222,8 +237,10 @@ services:
       MONGO_USERNAME: skillmatch
       MONGO_PASSWORD: secret
       RABBITMQ_HOST: rabbitmq
-      KEYCLOAK_ISSUER_URI: http://keycloak:8180/realms/skillmatch
-      KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ISSUER_URI: http://host.docker.internal:8180/realms/skillmatch
+      KEYCLOAK_JWK_URI: http://host.docker.internal:8180/realms/skillmatch/protocol/openid-connect/certs
       JAVA_OPTS: "-Xmx256m -Xms128m"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on: [mongo, rabbitmq]
     networks: [skillmatch-net]
