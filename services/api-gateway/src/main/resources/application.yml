@@ -8,26 +8,56 @@ spring:
           uri: http://${USER_SERVICE_HOST:user-service}:${USER_SERVICE_PORT:8081}
           predicates:
             - Path=/api/v1/users/**, /api/v1/professionals/**, /api/v1/companies/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userServiceCB
+                fallbackUri: forward:/fallback/user-service
         - id: project-service
           uri: http://${PROJECT_SERVICE_HOST:project-service}:${PROJECT_SERVICE_PORT:8082}
           predicates:
             - Path=/api/v1/projects/**, /api/v1/candidatures/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: projectServiceCB
+                fallbackUri: forward:/fallback/project-service
         - id: contract-service
           uri: http://${CONTRACT_SERVICE_HOST:contract-service}:${CONTRACT_SERVICE_PORT:8083}
           predicates:
             - Path=/api/v1/contracts/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: contractServiceCB
+                fallbackUri: forward:/fallback/contract-service
         - id: payment-service
           uri: http://${PAYMENT_SERVICE_HOST:payment-service}:${PAYMENT_SERVICE_PORT:8084}
           predicates:
             - Path=/api/v1/payments/**, /api/v1/transactions/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: paymentServiceCB
+                fallbackUri: forward:/fallback/payment-service
         - id: feedback-service
           uri: http://${FEEDBACK_SERVICE_HOST:feedback-service}:${FEEDBACK_SERVICE_PORT:8085}
           predicates:
             - Path=/api/v1/feedbacks/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: feedbackServiceCB
+                fallbackUri: forward:/fallback/feedback-service
         - id: notification-service
           uri: http://${NOTIFICATION_SERVICE_HOST:notification-service}:${NOTIFICATION_SERVICE_PORT:8086}
           predicates:
             - Path=/api/v1/notifications/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCB
+                fallbackUri: forward:/fallback/notification-service
   security:
     oauth2:
       resourceserver:
@@ -49,12 +79,42 @@ management:
 
 resilience4j:
   circuitbreaker:
-    instances:
+    configs:
       default:
         sliding-window-size: 10
         failure-rate-threshold: 50
         wait-duration-in-open-state: 10s
         permitted-number-of-calls-in-half-open-state: 3
+    instances:
+      userServiceCB:
+        base-config: default
+      projectServiceCB:
+        base-config: default
+      contractServiceCB:
+        base-config: default
+      paymentServiceCB:
+        base-config: default
+      feedbackServiceCB:
+        base-config: default
+      notificationServiceCB:
+        base-config: default
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 4s
+    instances:
+      userServiceCB:
+        base-config: default
+      projectServiceCB:
+        base-config: default
+      contractServiceCB:
+        base-config: default
+      paymentServiceCB:
+        base-config: default
+      feedbackServiceCB:
+        base-config: default
+      notificationServiceCB:
+        base-config: default
 
 logging:
   structured:
