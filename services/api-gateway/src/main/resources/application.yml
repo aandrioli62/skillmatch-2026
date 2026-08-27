@@ -7,7 +7,7 @@ spring:
         - id: user-service
           uri: http://${USER_SERVICE_HOST:user-service}:${USER_SERVICE_PORT:8081}
           predicates:
-            - Path=/api/v1/users/**, /api/v1/professionals/**, /api/v1/companies/**
+            - Path=/api/v1/users/**, /api/v1/professionals/**, /api/v1/companies/**, /api/v1/admin/users/**
           filters:
             - name: CircuitBreaker
               args:
@@ -34,7 +34,7 @@ spring:
         - id: payment-service
           uri: http://${PAYMENT_SERVICE_HOST:payment-service}:${PAYMENT_SERVICE_PORT:8084}
           predicates:
-            - Path=/api/v1/payments/**, /api/v1/transactions/**
+            - Path=/api/v1/payments/**, /api/v1/transactions/**, /api/v1/admin/commission-config/**
           filters:
             - name: CircuitBreaker
               args:
