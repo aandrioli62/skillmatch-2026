@@ -170,7 +170,10 @@ services:
       RABBITMQ_HOST: rabbitmq
       KEYCLOAK_ISSUER_URI: http://host.docker.internal:8180/realms/skillmatch
       KEYCLOAK_JWK_URI: http://host.docker.internal:8180/realms/skillmatch/protocol/openid-connect/certs
+      USER_SERVICE_BASE_URL: http://user-service:8081
       JAVA_OPTS: "-Xmx256m -Xms128m"
+    ports:
+      - "8083:8083"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
