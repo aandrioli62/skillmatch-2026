@@ -7,6 +7,9 @@ CREATE TABLE commission_config (
     set_by_admin_id UUID
 );
 
+-- Platform default commission rate (CLAUDE.md business rule #2), effective from day one.
+INSERT INTO commission_config (rate_percentage) VALUES (8.00);
+
 CREATE TABLE transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     contract_id UUID NOT NULL,
