@@ -1,18 +1,20 @@
+# syntax=docker/dockerfile:1
+
 # ── Build stage ────────────────────────────────────────────────────────────────
 FROM maven:3.9.7-eclipse-temurin-21 AS build
 WORKDIR /build
 
 # Install parent POM into local Maven cache (non-recursive)
 COPY pom.xml .
-RUN mvn install -N -B
+RUN --mount=type=cache,target=/root/.m2 mvn install -N -B
 
 # Resolve service dependencies (layer cache)
 WORKDIR /build/services/payment-service
 COPY services/payment-service/pom.xml .
-RUN mvn dependency:go-offline -B
+RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline -B
 
 COPY services/payment-service/src ./src
-RUN mvn package -DskipTests -B
+RUN --mount=type=cache,target=/root/.m2 mvn package -DskipTests -B
 
 # ── Runtime stage ───────────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-jammy
