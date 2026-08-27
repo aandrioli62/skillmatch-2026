@@ -22,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,6 +60,7 @@ class ProjectControllerTest {
         requirement.setSkillName("Figma");
         ProjectCreateRequest request = new ProjectCreateRequest();
         request.setTitle("Consulenza UI/UX");
+        request.setBudget(BigDecimal.valueOf(1500));
         request.setRequirements(List.of(requirement));
         return request;
     }

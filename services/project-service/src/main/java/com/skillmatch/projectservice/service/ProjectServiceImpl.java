@@ -202,6 +202,7 @@ public class ProjectServiceImpl implements ProjectService {
                                 .projectId(projectId)
                                 .professionalId(candidature.getProfessionalId())
                                 .companyId(companyId)
+                                .amount(project.getBudget())
                                 .build())
                         .build());
 

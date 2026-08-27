@@ -3,6 +3,7 @@ package com.skillmatch.projectservice.event;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -35,5 +36,6 @@ public class CandidatureAcceptedEvent {
         private UUID projectId;
         private UUID professionalId;
         private UUID companyId;
+        private BigDecimal amount;
     }
 }

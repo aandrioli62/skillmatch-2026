@@ -35,6 +35,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -90,6 +91,7 @@ class ProjectServiceImplTest {
         openProject.setCompanyId(companyId);
         openProject.setTitle("Consulenza UI/UX");
         openProject.setStatus(ProjectStatus.OPEN);
+        openProject.setBudget(BigDecimal.valueOf(1500));
     }
 
     // =========================================================================
@@ -399,6 +401,7 @@ class ProjectServiceImplTest {
             ArgumentCaptor<CandidatureAcceptedEvent> captor = ArgumentCaptor.forClass(CandidatureAcceptedEvent.class);
             verify(eventPublisher).publishCandidatureAccepted(captor.capture());
             assertThat(captor.getValue().getData().getCandidatureId()).isEqualTo(candidatureId);
+            assertThat(captor.getValue().getData().getAmount()).isEqualByComparingTo(BigDecimal.valueOf(1500));
         }
 
         @Test

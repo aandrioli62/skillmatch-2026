@@ -31,6 +31,7 @@ import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -116,6 +117,7 @@ class ProjectServiceIntegrationTest {
         requirement.setSkillName("Figma");
         ProjectCreateRequest request = new ProjectCreateRequest();
         request.setTitle(title);
+        request.setBudget(BigDecimal.valueOf(1500));
         request.setRequirements(List.of(requirement));
         return request;
     }
