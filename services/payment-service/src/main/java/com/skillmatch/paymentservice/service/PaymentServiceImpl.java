@@ -103,6 +103,7 @@ public class PaymentServiceImpl implements PaymentService {
                         .data(PaymentCompletedEvent.Data.builder()
                                 .transactionId(transaction.getId())
                                 .contractId(contractId)
+                                .projectId(contract.getProjectId())
                                 .companyId(companyId)
                                 .professionalId(contract.getProfessionalId())
                                 .totalAmount(totalAmount)

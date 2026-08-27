@@ -34,6 +34,7 @@ public class PaymentCompletedEvent {
     public static class Data {
         private UUID transactionId;
         private UUID contractId;
+        private UUID projectId;
         private UUID companyId;
         private UUID professionalId;
         private BigDecimal totalAmount;
