@@ -2,7 +2,7 @@ spring:
   application:
     name: feedback-service
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:feedback-db}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:feedbackdb}
     username: ${DB_USERNAME:skillmatch}
     password: ${DB_PASSWORD:secret}
   jpa:
@@ -27,6 +27,10 @@ spring:
 server:
   port: ${SERVER_PORT:8085}
 
+services:
+  user-service:
+    base-url: ${USER_SERVICE_BASE_URL:http://localhost:8081}
+
 management:
   endpoints:
     web:
@@ -50,8 +54,31 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+  packages-to-scan: com.skillmatch.feedbackservice
 
 logging:
   structured:
     format:
       console: json
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    com.skillmatch: DEBUG
+    org.springframework.security: DEBUG
+
+springdoc:
+  swagger-ui:
+    try-it-out-enabled: true
