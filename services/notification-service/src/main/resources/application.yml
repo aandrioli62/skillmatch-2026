@@ -32,6 +32,15 @@ management:
     health:
       show-details: always
 
+resilience4j:
+  circuitbreaker:
+    instances:
+      default:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+
 springdoc:
   api-docs:
     path: /v3/api-docs
