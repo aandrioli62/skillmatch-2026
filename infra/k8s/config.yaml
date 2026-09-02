@@ -1,0 +1,59 @@
+# Shared config/secrets for all SkillMatch services (namespace: skillmatch).
+#
+# NOTE on Keycloak URIs: until the frontend (Phase 7) and public ingress+domain
+# (Phase 6, ingress.yaml) are wired up, every backend service and Keycloak's
+# KC_HOSTNAME below point at the in-cluster Service name. Once the frontend
+# obtains tokens from the browser via the public ingress URL, KC_HOSTNAME
+# (keycloak/deployment.yaml) and keycloak-issuer-uri here must both switch to
+# that public URL, or JWT "iss" validation will fail (issuer must match the
+# host the token was actually issued from).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skillmatch-config
+  namespace: skillmatch
+data:
+  keycloak-issuer-uri: "http://keycloak:8180/realms/skillmatch"
+  keycloak-jwk-uri: "http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs"
+  rabbitmq-host: "rabbitmq"
+  mongo-host: "mongodb"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+  namespace: skillmatch
+type: Opaque
+stringData:
+  username: skillmatch
+  password: secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongo-credentials
+  namespace: skillmatch
+type: Opaque
+stringData:
+  username: skillmatch
+  password: secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-credentials
+  namespace: skillmatch
+type: Opaque
+stringData:
+  username: guest
+  password: guest
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-admin-credentials
+  namespace: skillmatch
+type: Opaque
+stringData:
+  username: admin
+  password: admin
