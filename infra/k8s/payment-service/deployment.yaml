@@ -66,17 +66,21 @@ spec:
               value: "http://contract-service:8083"
             - name: JAVA_OPTS
               value: "-Xmx256m -Xms128m"
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8084
+            periodSeconds: 10
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 8084
-            initialDelaySeconds: 45
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
               port: 8084
-            initialDelaySeconds: 30
             periodSeconds: 5
           resources:
             requests:
