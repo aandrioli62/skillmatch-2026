@@ -15,8 +15,6 @@ spec:
       labels:
         app: notification-service
     spec:
-      imagePullSecrets:
-        - name: ghcr-secret
       containers:
         - name: notification-service
           image: ghcr.io/aandrioli62/skillmatch/notification-service:latest

@@ -15,8 +15,6 @@ spec:
       labels:
         app: payment-service
     spec:
-      imagePullSecrets:
-        - name: ghcr-secret
       containers:
         - name: payment-service
           image: ghcr.io/aandrioli62/skillmatch/payment-service:latest

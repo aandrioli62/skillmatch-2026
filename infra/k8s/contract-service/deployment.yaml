@@ -15,8 +15,6 @@ spec:
       labels:
         app: contract-service
     spec:
-      imagePullSecrets:
-        - name: ghcr-secret
       containers:
         - name: contract-service
           image: ghcr.io/aandrioli62/skillmatch/contract-service:latest

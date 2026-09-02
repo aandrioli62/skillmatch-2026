@@ -6,7 +6,8 @@
 #   - K3s running, kubectl configured against it
 #   - Nginx Ingress Controller + cert-manager installed (only needed for
 #     infra/k8s/ingress.yaml)
-#   - ghcr-secret created in the skillmatch namespace for pulling private images
+#   - GHCR packages (ghcr.io/aandrioli62/skillmatch/*) set to Public, so K3s
+#     can pull them without credentials
 #
 # Usage: ./infra/scripts/deploy-k8s.sh
 # Run from the repository root.

@@ -15,8 +15,6 @@ spec:
       labels:
         app: feedback-service
     spec:
-      imagePullSecrets:
-        - name: ghcr-secret
       containers:
         - name: feedback-service
           image: ghcr.io/aandrioli62/skillmatch/feedback-service:latest
