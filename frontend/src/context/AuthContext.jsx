@@ -1,0 +1,64 @@
+import { Box, CircularProgress } from '@mui/material'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import keycloak from '../keycloak'
+
+const AuthContext = createContext(null)
+
+export function AuthProvider({ children }) {
+  const [initialized, setInitialized] = useState(false)
+  const didInit = useRef(false)
+
+  useEffect(() => {
+    // React 18/19 StrictMode invokes effects twice in dev; keycloak-js
+    // throws if init() is called a second time on the same instance.
+    if (didInit.current) return
+    didInit.current = true
+
+    keycloak
+      .init({
+        onLoad: 'login-required',
+        pkceMethod: 'S256',
+        checkLoginIframe: false,
+      })
+      .finally(() => setInitialized(true))
+
+    keycloak.onTokenExpired = () => {
+      keycloak.updateToken(30).catch(() => keycloak.login())
+    }
+  }, [])
+
+  if (!initialized) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          minHeight: '100vh',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    )
+  }
+
+  const roles = keycloak.tokenParsed?.realm_access?.roles ?? []
+
+  const value = {
+    keycloak,
+    roles,
+    hasRole: (role) => roles.includes(role),
+    username: keycloak.tokenParsed?.preferred_username,
+    logout: () => keycloak.logout({ redirectUri: window.location.origin }),
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) {
+    throw new Error('useAuth must be used within AuthProvider')
+  }
+  return ctx
+}
