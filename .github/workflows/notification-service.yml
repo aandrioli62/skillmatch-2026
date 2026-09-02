@@ -55,19 +55,19 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
-  # deploy:
-  #   # Riabilitare quando la VM Oracle Cloud (K3s + ghcr-secret) sara' pronta.
-  #   needs: docker-build-push
-  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: appleboy/ssh-action@v1
-  #       with:
-  #         host: ${{ secrets.ORACLE_VM_HOST }}
-  #         username: ${{ secrets.ORACLE_VM_USER }}
-  #         key: ${{ secrets.ORACLE_VM_SSH_KEY }}
-  #         script: |
-  #           kubectl set image deployment/notification-service \
-  #             notification-service=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-  #             --namespace skillmatch
-  #           kubectl rollout status deployment/notification-service --namespace skillmatch
+  deploy:
+    needs: docker-build-push
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Oracle Cloud VM via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.ORACLE_VM_HOST }}
+          username: ${{ secrets.ORACLE_VM_USER }}
+          key: ${{ secrets.ORACLE_VM_SSH_KEY }}
+          script: |
+            kubectl set image deployment/notification-service \
+              notification-service=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+              --namespace skillmatch
+            kubectl rollout status deployment/notification-service --namespace skillmatch
