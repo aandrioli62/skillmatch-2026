@@ -141,6 +141,26 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public ProfessionalProfileResponse getProfessionalProfile(UUID userId) {
+        User user = findUserById(userId);
+
+        if (user.getRole() != UserRole.PROFESSIONAL) {
+            throw new InvalidUserOperationException(
+                    "User with id=" + userId + " is not a PROFESSIONAL.");
+        }
+
+        ProfessionalProfile profile = professionalProfileRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    ProfessionalProfile p = new ProfessionalProfile();
+                    p.setUser(user);
+                    return p;
+                });
+
+        return professionalProfileMapper.toResponse(profile);
+    }
+
+    @Override
     public CompanyProfileResponse updateCompanyProfile(UUID userId, CompanyProfileRequest request) {
         User user = findUserById(userId);
 

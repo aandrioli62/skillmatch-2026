@@ -49,6 +49,15 @@ public interface UserService {
     ProfessionalProfileResponse updateProfessionalProfile(UUID userId, ProfessionalProfileRequest request);
 
     /**
+     * Admin: returns the professional profile for a given user, regardless of validation
+     * status — used to display the applicant's name while reviewing a pending registration.
+     *
+     * @throws com.skillmatch.userservice.exception.UserNotFoundException       if user does not exist
+     * @throws com.skillmatch.userservice.exception.InvalidUserOperationException if user is not a PROFESSIONAL
+     */
+    ProfessionalProfileResponse getProfessionalProfile(UUID userId);
+
+    /**
      * Creates or updates the company profile for a given user.
      * The user must have role COMPANY.
      *

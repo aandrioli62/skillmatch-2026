@@ -1,5 +1,6 @@
 package com.skillmatch.userservice.controller;
 
+import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import com.skillmatch.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -55,6 +56,28 @@ public class AdminUserController {
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
         return ResponseEntity.ok(userService.listUsers(pageable));
+    }
+
+    @Operation(
+            summary = "Get a professional's profile",
+            description = "Returns the professional profile (name, bio, reputation) for a given user, regardless "
+                    + "of validation status — used to identify an applicant while reviewing a pending registration."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Profile returned",
+                    content = @Content(schema = @Schema(implementation = ProfessionalProfileResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Caller does not have ADMIN role",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "User not found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "422", description = "User is not a PROFESSIONAL",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @GetMapping("/{userId}/professional-profile")
+    public ResponseEntity<ProfessionalProfileResponse> getProfessionalProfile(
+            @Parameter(description = "UUID of the professional", required = true)
+            @PathVariable("userId") UUID userId) {
+        return ResponseEntity.ok(userService.getProfessionalProfile(userId));
     }
 
     // -------------------------------------------------------------------------

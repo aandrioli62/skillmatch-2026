@@ -309,6 +309,63 @@ class UserServiceImplTest {
     }
 
     // =========================================================================
+    // getProfessionalProfile
+    // =========================================================================
+
+    @Nested
+    @DisplayName("getProfessionalProfile()")
+    class GetProfessionalProfile {
+
+        @Test
+        @DisplayName("existing profile: returns mapped response")
+        void getProfessionalProfile_existing_returnsMapped() {
+            ProfessionalProfile existing = new ProfessionalProfile();
+            existing.setUser(professionalUser);
+            ProfessionalProfileResponse response = new ProfessionalProfileResponse();
+            response.setFirstName("Mario");
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(professionalUser));
+            when(professionalProfileRepository.findByUserId(userId)).thenReturn(Optional.of(existing));
+            when(professionalProfileMapper.toResponse(existing)).thenReturn(response);
+
+            ProfessionalProfileResponse result = userService.getProfessionalProfile(userId);
+
+            assertThat(result.getFirstName()).isEqualTo("Mario");
+        }
+
+        @Test
+        @DisplayName("no profile yet: returns empty profile without throwing")
+        void getProfessionalProfile_noProfileYet_returnsEmpty() {
+            when(userRepository.findById(userId)).thenReturn(Optional.of(professionalUser));
+            when(professionalProfileRepository.findByUserId(userId)).thenReturn(Optional.empty());
+            when(professionalProfileMapper.toResponse(any())).thenReturn(new ProfessionalProfileResponse());
+
+            ProfessionalProfileResponse result = userService.getProfessionalProfile(userId);
+
+            assertThat(result).isNotNull();
+            verify(professionalProfileRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("non-PROFESSIONAL user: throws InvalidUserOperationException")
+        void getProfessionalProfile_wrongRole_throws() {
+            when(userRepository.findById(userId)).thenReturn(Optional.of(companyUser));
+
+            assertThatThrownBy(() -> userService.getProfessionalProfile(userId))
+                    .isInstanceOf(InvalidUserOperationException.class);
+        }
+
+        @Test
+        @DisplayName("user not found: throws UserNotFoundException")
+        void getProfessionalProfile_userNotFound() {
+            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> userService.getProfessionalProfile(userId))
+                    .isInstanceOf(UserNotFoundException.class);
+        }
+    }
+
+    // =========================================================================
     // updateCompanyProfile
     // =========================================================================
 

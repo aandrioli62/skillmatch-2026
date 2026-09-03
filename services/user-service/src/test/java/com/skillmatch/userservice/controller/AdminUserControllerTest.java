@@ -1,6 +1,7 @@
 package com.skillmatch.userservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import com.skillmatch.userservice.config.TestSecurityConfig;
 import com.skillmatch.userservice.exception.GlobalExceptionHandler;
@@ -81,6 +82,54 @@ class AdminUserControllerTest {
         @DisplayName("non-ADMIN role → 403 Forbidden")
         void listUsers_nonAdmin_forbidden() throws Exception {
             mockMvc.perform(get("/api/v1/admin/users")
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_PROFESSIONAL"))))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/v1/admin/users/{userId}/professional-profile
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/admin/users/{userId}/professional-profile")
+    class GetProfessionalProfile {
+
+        @Test
+        @DisplayName("ADMIN role → 200 OK with profile")
+        void getProfessionalProfile_admin_ok() throws Exception {
+            UUID userId = UUID.randomUUID();
+            ProfessionalProfileResponse profile = new ProfessionalProfileResponse();
+            profile.setUserId(userId);
+            profile.setFirstName("Mario");
+            profile.setLastName("Rossi");
+
+            when(userService.getProfessionalProfile(userId)).thenReturn(profile);
+
+            mockMvc.perform(get("/api/v1/admin/users/{userId}/professional-profile", userId)
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.firstName").value("Mario"));
+        }
+
+        @Test
+        @DisplayName("user not a professional → 422 Unprocessable Entity")
+        void getProfessionalProfile_wrongRole() throws Exception {
+            UUID userId = UUID.randomUUID();
+            when(userService.getProfessionalProfile(userId))
+                    .thenThrow(new InvalidUserOperationException("not a PROFESSIONAL"));
+
+            mockMvc.perform(get("/api/v1/admin/users/{userId}/professional-profile", userId)
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                    .andExpect(status().isUnprocessableEntity());
+        }
+
+        @Test
+        @DisplayName("non-ADMIN role → 403 Forbidden")
+        void getProfessionalProfile_nonAdmin_forbidden() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            mockMvc.perform(get("/api/v1/admin/users/{userId}/professional-profile", userId)
                             .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_PROFESSIONAL"))))
                     .andExpect(status().isForbidden());
         }
