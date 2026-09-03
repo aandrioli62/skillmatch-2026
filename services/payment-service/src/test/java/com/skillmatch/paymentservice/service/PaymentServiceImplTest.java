@@ -17,6 +17,7 @@ import com.skillmatch.paymentservice.model.Transaction;
 import com.skillmatch.paymentservice.repository.CommissionConfigRepository;
 import com.skillmatch.paymentservice.repository.InvoiceRepository;
 import com.skillmatch.paymentservice.repository.TransactionRepository;
+import org.springframework.security.access.AccessDeniedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -235,16 +236,61 @@ class PaymentServiceImplTest {
     class Retrieval {
 
         @Test
-        @DisplayName("existing transaction: returns mapped response")
-        void getTransaction_found() {
+        @DisplayName("caller is the company party: returns mapped response")
+        void getTransaction_companyParty_returnsMapped() {
             UUID transactionId = UUID.randomUUID();
             Transaction transaction = new Transaction();
+            transaction.setCompanyId(companyId);
+            transaction.setProfessionalId(professionalId);
             when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
             when(paymentMapper.toResponse(transaction)).thenReturn(new TransactionResponse());
 
-            TransactionResponse result = paymentService.getTransaction(transactionId);
+            TransactionResponse result = paymentService.getTransaction(transactionId, companyId, false);
 
             assertThat(result).isNotNull();
+        }
+
+        @Test
+        @DisplayName("caller is the professional party: returns mapped response")
+        void getTransaction_professionalParty_returnsMapped() {
+            UUID transactionId = UUID.randomUUID();
+            Transaction transaction = new Transaction();
+            transaction.setCompanyId(companyId);
+            transaction.setProfessionalId(professionalId);
+            when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
+            when(paymentMapper.toResponse(transaction)).thenReturn(new TransactionResponse());
+
+            TransactionResponse result = paymentService.getTransaction(transactionId, professionalId, false);
+
+            assertThat(result).isNotNull();
+        }
+
+        @Test
+        @DisplayName("admin caller: bypasses ownership check")
+        void getTransaction_admin_returnsMapped() {
+            UUID transactionId = UUID.randomUUID();
+            Transaction transaction = new Transaction();
+            transaction.setCompanyId(companyId);
+            transaction.setProfessionalId(professionalId);
+            when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
+            when(paymentMapper.toResponse(transaction)).thenReturn(new TransactionResponse());
+
+            TransactionResponse result = paymentService.getTransaction(transactionId, UUID.randomUUID(), true);
+
+            assertThat(result).isNotNull();
+        }
+
+        @Test
+        @DisplayName("caller is not a party and not an admin: throws AccessDeniedException")
+        void getTransaction_notAParty_throwsAccessDenied() {
+            UUID transactionId = UUID.randomUUID();
+            Transaction transaction = new Transaction();
+            transaction.setCompanyId(companyId);
+            transaction.setProfessionalId(professionalId);
+            when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
+
+            assertThatThrownBy(() -> paymentService.getTransaction(transactionId, UUID.randomUUID(), false))
+                    .isInstanceOf(AccessDeniedException.class);
         }
 
         @Test
@@ -253,7 +299,7 @@ class PaymentServiceImplTest {
             UUID transactionId = UUID.randomUUID();
             when(transactionRepository.findById(transactionId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> paymentService.getTransaction(transactionId))
+            assertThatThrownBy(() -> paymentService.getTransaction(transactionId, companyId, false))
                     .isInstanceOf(TransactionNotFoundException.class);
         }
 
@@ -275,8 +321,40 @@ class PaymentServiceImplTest {
             UUID transactionId = UUID.randomUUID();
             when(invoiceRepository.findByTransactionId(transactionId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> paymentService.getInvoiceByTransaction(transactionId))
+            assertThatThrownBy(() -> paymentService.getInvoiceByTransaction(transactionId, companyId, false))
                     .isInstanceOf(InvoiceNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("getInvoiceByTransaction: caller is the company party returns mapped response")
+        void getInvoiceByTransaction_companyParty_returnsMapped() {
+            UUID transactionId = UUID.randomUUID();
+            Transaction transaction = new Transaction();
+            transaction.setCompanyId(companyId);
+            transaction.setProfessionalId(professionalId);
+            Invoice invoice = new Invoice();
+            invoice.setTransaction(transaction);
+            when(invoiceRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(invoice));
+            when(paymentMapper.toResponse(invoice)).thenReturn(new InvoiceResponse());
+
+            InvoiceResponse result = paymentService.getInvoiceByTransaction(transactionId, companyId, false);
+
+            assertThat(result).isNotNull();
+        }
+
+        @Test
+        @DisplayName("getInvoiceByTransaction: caller is not a party and not an admin throws AccessDeniedException")
+        void getInvoiceByTransaction_notAParty_throwsAccessDenied() {
+            UUID transactionId = UUID.randomUUID();
+            Transaction transaction = new Transaction();
+            transaction.setCompanyId(companyId);
+            transaction.setProfessionalId(professionalId);
+            Invoice invoice = new Invoice();
+            invoice.setTransaction(transaction);
+            when(invoiceRepository.findByTransactionId(transactionId)).thenReturn(Optional.of(invoice));
+
+            assertThatThrownBy(() -> paymentService.getInvoiceByTransaction(transactionId, UUID.randomUUID(), false))
+                    .isInstanceOf(AccessDeniedException.class);
         }
     }
 

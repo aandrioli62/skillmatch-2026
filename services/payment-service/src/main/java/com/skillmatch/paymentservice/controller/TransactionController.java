@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,36 +38,52 @@ public class TransactionController {
 
     @Operation(
             summary = "Get transaction detail",
-            description = "Returns a single transaction."
+            description = "Returns a single transaction. Only a party to the transaction (its company or its "
+                    + "professional) or an admin may view it."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Transaction returned",
                     content = @Content(schema = @Schema(implementation = TransactionResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Caller is not a party to the transaction",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Transaction not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @GetMapping("/{transactionId}")
     public ResponseEntity<TransactionResponse> getTransaction(
             @Parameter(description = "Transaction UUID", required = true)
-            @PathVariable UUID transactionId) {
-        return ResponseEntity.ok(paymentService.getTransaction(transactionId));
+            @PathVariable UUID transactionId,
+            Authentication authentication) {
+        UUID callerId = userServiceClient.resolveCurrentUserId();
+        return ResponseEntity.ok(paymentService.getTransaction(transactionId, callerId, isAdmin(authentication)));
     }
 
     @Operation(
             summary = "Get the invoice for a transaction",
-            description = "Returns the invoice generated when the transaction was paid."
+            description = "Returns the invoice generated when the transaction was paid. Only a party to the "
+                    + "underlying transaction (its company or its professional) or an admin may view it."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Invoice returned",
                     content = @Content(schema = @Schema(implementation = InvoiceResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Caller is not a party to the underlying transaction",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Invoice not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @GetMapping("/{transactionId}/invoice")
     public ResponseEntity<InvoiceResponse> getInvoice(
             @Parameter(description = "Transaction UUID", required = true)
-            @PathVariable UUID transactionId) {
-        return ResponseEntity.ok(paymentService.getInvoiceByTransaction(transactionId));
+            @PathVariable UUID transactionId,
+            Authentication authentication) {
+        UUID callerId = userServiceClient.resolveCurrentUserId();
+        return ResponseEntity.ok(paymentService.getInvoiceByTransaction(transactionId, callerId, isAdmin(authentication)));
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_ADMIN"::equals);
     }
 
     @Operation(

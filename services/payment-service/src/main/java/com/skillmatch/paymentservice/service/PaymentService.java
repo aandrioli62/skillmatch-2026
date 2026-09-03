@@ -23,11 +23,13 @@ public interface PaymentService {
     TransactionResponse initiatePayment(UUID companyId, UUID contractId);
 
     /**
-     * Returns a single transaction.
+     * Returns a single transaction. Only a party to the transaction (its company or its
+     * professional) or an admin may view it.
      *
-     * @throws com.skillmatch.paymentservice.exception.TransactionNotFoundException if transaction does not exist
+     * @throws com.skillmatch.paymentservice.exception.TransactionNotFoundException     if transaction does not exist
+     * @throws org.springframework.security.access.AccessDeniedException               if the caller is not a party and not an admin
      */
-    TransactionResponse getTransaction(UUID transactionId);
+    TransactionResponse getTransaction(UUID transactionId, UUID callerId, boolean isAdmin);
 
     /**
      * Returns all transactions where the given user is the paying company.
@@ -40,11 +42,13 @@ public interface PaymentService {
     List<TransactionResponse> listTransactionsByProfessional(UUID professionalId);
 
     /**
-     * Returns the invoice generated for a transaction.
+     * Returns the invoice generated for a transaction. Only a party to the underlying
+     * transaction (its company or its professional) or an admin may view it.
      *
-     * @throws com.skillmatch.paymentservice.exception.InvoiceNotFoundException if no invoice exists for that transaction
+     * @throws com.skillmatch.paymentservice.exception.InvoiceNotFoundException  if no invoice exists for that transaction
+     * @throws org.springframework.security.access.AccessDeniedException        if the caller is not a party and not an admin
      */
-    InvoiceResponse getInvoiceByTransaction(UUID transactionId);
+    InvoiceResponse getInvoiceByTransaction(UUID transactionId, UUID callerId, boolean isAdmin);
 
     /**
      * Returns the currently active commission rate.

@@ -20,6 +20,7 @@ import com.skillmatch.paymentservice.repository.InvoiceRepository;
 import com.skillmatch.paymentservice.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -123,8 +124,10 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public TransactionResponse getTransaction(UUID transactionId) {
-        return paymentMapper.toResponse(findTransactionById(transactionId));
+    public TransactionResponse getTransaction(UUID transactionId, UUID callerId, boolean isAdmin) {
+        Transaction transaction = findTransactionById(transactionId);
+        assertTransactionAccess(transaction, callerId, isAdmin);
+        return paymentMapper.toResponse(transaction);
     }
 
     @Override
@@ -145,9 +148,10 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public InvoiceResponse getInvoiceByTransaction(UUID transactionId) {
+    public InvoiceResponse getInvoiceByTransaction(UUID transactionId, UUID callerId, boolean isAdmin) {
         Invoice invoice = invoiceRepository.findByTransactionId(transactionId)
                 .orElseThrow(() -> new InvoiceNotFoundException(transactionId));
+        assertTransactionAccess(invoice.getTransaction(), callerId, isAdmin);
         return paymentMapper.toResponse(invoice);
     }
 
@@ -197,5 +201,15 @@ public class PaymentServiceImpl implements PaymentService {
     private Transaction findTransactionById(UUID transactionId) {
         return transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new TransactionNotFoundException(transactionId));
+    }
+
+    private void assertTransactionAccess(Transaction transaction, UUID callerId, boolean isAdmin) {
+        if (isAdmin) {
+            return;
+        }
+        if (!transaction.getCompanyId().equals(callerId) && !transaction.getProfessionalId().equals(callerId)) {
+            throw new AccessDeniedException(
+                    "Caller with id=" + callerId + " is not a party to transaction id=" + transaction.getId());
+        }
     }
 }
