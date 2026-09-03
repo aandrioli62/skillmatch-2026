@@ -1,14 +1,47 @@
 import { Box, Paper, Typography } from '@mui/material'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import api from '../../services/api'
 
-const STATS = [
-  { label: 'Utenti da validare', value: '—' },
-  { label: 'Transazioni totali', value: '—' },
-  { label: 'Commissione attuale', value: '8%' },
-]
+function StatCard({ label, value }) {
+  return (
+    <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+      <Typography variant="body2" color="text.secondary">
+        {label}
+      </Typography>
+      <Typography variant="h4" sx={{ mt: 1, fontWeight: 700 }}>
+        {value}
+      </Typography>
+    </Paper>
+  )
+}
 
 export default function AdminDashboard() {
   const { username } = useAuth()
+
+  const [pendingCount, setPendingCount] = useState(null)
+  const [transactionCount, setTransactionCount] = useState(null)
+  const [commissionRate, setCommissionRate] = useState(null)
+
+  useEffect(() => {
+    api
+      .get('/admin/users', { params: { size: 100 } })
+      .then((res) => {
+        const pending = res.data.content.filter((u) => u.role === 'PROFESSIONAL' && u.status === 'PENDING')
+        setPendingCount(pending.length)
+      })
+      .catch(() => setPendingCount('—'))
+
+    api
+      .get('/transactions/admin/all', { params: { size: 1 } })
+      .then((res) => setTransactionCount(res.data.totalElements))
+      .catch(() => setTransactionCount('—'))
+
+    api
+      .get('/admin/commission-config')
+      .then((res) => setCommissionRate(res.data.ratePercentage))
+      .catch(() => setCommissionRate('—'))
+  }, [])
 
   return (
     <>
@@ -16,16 +49,9 @@ export default function AdminDashboard() {
         Bentornato, {username}
       </Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
-        {STATS.map((stat) => (
-          <Paper key={stat.label} variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-              {stat.label}
-            </Typography>
-            <Typography variant="h4" sx={{ mt: 1, fontWeight: 700 }}>
-              {stat.value}
-            </Typography>
-          </Paper>
-        ))}
+        <StatCard label="Utenti da validare" value={pendingCount ?? '…'} />
+        <StatCard label="Transazioni totali" value={transactionCount ?? '…'} />
+        <StatCard label="Commissione attuale" value={commissionRate !== null ? `${commissionRate}%` : '…'} />
       </Box>
     </>
   )

@@ -1,9 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './components/AppLayout'
-import PlaceholderPage from './components/PlaceholderPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './context/AuthContext'
 import AdminDashboard from './pages/admin/Dashboard'
+import AdminSettings from './pages/admin/Settings'
+import AdminTransactions from './pages/admin/Transactions'
+import AdminUsers from './pages/admin/Users'
 import CompanyContracts from './pages/company/Contracts'
 import CompanyDashboard from './pages/company/Dashboard'
 import CompanyPayments from './pages/company/Payments'
@@ -126,7 +128,7 @@ function App() {
           path="/admin/users"
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
-              <PlaceholderPage title="Validazione utenti" />
+              <AdminUsers />
             </ProtectedRoute>
           }
         />
@@ -134,7 +136,7 @@ function App() {
           path="/admin/settings"
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
-              <PlaceholderPage title="Configurazione commissione" />
+              <AdminSettings />
             </ProtectedRoute>
           }
         />
@@ -142,7 +144,7 @@ function App() {
           path="/admin/transactions"
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
-              <PlaceholderPage title="Transazioni" />
+              <AdminTransactions />
             </ProtectedRoute>
           }
         />
