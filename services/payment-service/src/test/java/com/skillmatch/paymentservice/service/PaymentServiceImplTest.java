@@ -304,6 +304,21 @@ class PaymentServiceImplTest {
         }
 
         @Test
+        @DisplayName("listAllTransactions: returns mapped page")
+        void listAllTransactions_returnsMappedPage() {
+            Transaction transaction = new Transaction();
+            org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 20);
+            org.springframework.data.domain.Page<Transaction> page =
+                    new org.springframework.data.domain.PageImpl<>(List.of(transaction), pageable, 1);
+            when(transactionRepository.findAll(pageable)).thenReturn(page);
+            when(paymentMapper.toResponse(transaction)).thenReturn(new TransactionResponse());
+
+            var result = paymentService.listAllTransactions(pageable);
+
+            assertThat(result.getTotalElements()).isEqualTo(1);
+        }
+
+        @Test
         @DisplayName("listTransactionsByCompany: returns mapped list")
         void listTransactionsByCompany_returnsMapped() {
             Transaction transaction = new Transaction();

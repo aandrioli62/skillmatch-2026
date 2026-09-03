@@ -4,6 +4,8 @@ import com.skillmatch.paymentservice.dto.request.CommissionConfigRequest;
 import com.skillmatch.paymentservice.dto.response.CommissionConfigResponse;
 import com.skillmatch.paymentservice.dto.response.InvoiceResponse;
 import com.skillmatch.paymentservice.dto.response.TransactionResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.UUID;
@@ -40,6 +42,12 @@ public interface PaymentService {
      * Returns all transactions where the given user is the paid professional.
      */
     List<TransactionResponse> listTransactionsByProfessional(UUID professionalId);
+
+    /**
+     * Admin: returns a paginated list of all transactions platform-wide, ordered by
+     * creation date descending.
+     */
+    Page<TransactionResponse> listAllTransactions(Pageable pageable);
 
     /**
      * Returns the invoice generated for a transaction. Only a party to the underlying

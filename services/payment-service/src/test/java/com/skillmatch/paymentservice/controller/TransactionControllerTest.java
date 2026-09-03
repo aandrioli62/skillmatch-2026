@@ -15,9 +15,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
 
 import java.util.UUID;
 
@@ -100,6 +105,30 @@ class TransactionControllerTest {
             mockMvc.perform(get("/api/v1/transactions/{transactionId}", transactionId)
                             .with(jwt().authorities(ROLE_COMPANY)))
                     .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/transactions/admin/all")
+    class ListAllTransactions {
+
+        @Test
+        @DisplayName("ADMIN role → 200 OK")
+        void listAllTransactions_admin_ok() throws Exception {
+            Page<TransactionResponse> page = new PageImpl<>(List.of(new TransactionResponse()), PageRequest.of(0, 20), 1);
+            when(paymentService.listAllTransactions(org.mockito.ArgumentMatchers.any())).thenReturn(page);
+
+            mockMvc.perform(get("/api/v1/transactions/admin/all")
+                            .with(jwt().authorities(ROLE_ADMIN)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("non-ADMIN role → 403 Forbidden")
+        void listAllTransactions_nonAdmin_forbidden() throws Exception {
+            mockMvc.perform(get("/api/v1/transactions/admin/all")
+                            .with(jwt().authorities(ROLE_COMPANY)))
+                    .andExpect(status().isForbidden());
         }
     }
 
