@@ -58,6 +58,14 @@ public interface ProjectService {
     List<CandidatureResponse> listCandidaturesByProfessional(UUID professionalId);
 
     /**
+     * Returns all candidatures submitted for the given project. Only the owning company may list them.
+     *
+     * @throws com.skillmatch.projectservice.exception.ProjectNotFoundException          if project does not exist
+     * @throws com.skillmatch.projectservice.exception.InvalidProjectOperationException  if the caller is not the owner
+     */
+    List<CandidatureResponse> listCandidaturesByProject(UUID companyId, UUID projectId);
+
+    /**
      * Accepts a candidature. Only the owning company may accept, only one candidature per
      * project may ever be ACCEPTED, and all other PENDING candidatures for the same project
      * are automatically REJECTED. Transitions the project to ASSIGNED and publishes candidature.accepted.

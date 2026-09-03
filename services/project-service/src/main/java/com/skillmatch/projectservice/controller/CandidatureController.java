@@ -79,6 +79,26 @@ public class CandidatureController {
     }
 
     @Operation(
+            summary = "List candidatures for a project",
+            description = "Returns all candidatures submitted for the project. Only the owning company may list them."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Candidatures returned"),
+            @ApiResponse(responseCode = "404", description = "Project not found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "422", description = "Caller is not the owner",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @GetMapping("/{projectId}/candidatures")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<List<CandidatureResponse>> listCandidaturesForProject(
+            @Parameter(description = "Project UUID", required = true)
+            @PathVariable UUID projectId) {
+        UUID companyId = userServiceClient.resolveCurrentUserId();
+        return ResponseEntity.ok(projectService.listCandidaturesByProject(companyId, projectId));
+    }
+
+    @Operation(
             summary = "Accept a candidature",
             description = "Accepts a candidature for the project; automatically rejects the remaining PENDING "
                     + "ones and transitions the project to ASSIGNED. Publishes candidature.accepted. (UC-C2)"

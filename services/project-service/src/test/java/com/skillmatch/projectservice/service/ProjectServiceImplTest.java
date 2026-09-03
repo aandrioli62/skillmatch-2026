@@ -277,6 +277,39 @@ class ProjectServiceImplTest {
     }
 
     // =========================================================================
+    // listCandidaturesByProject
+    // =========================================================================
+
+    @Nested
+    @DisplayName("listCandidaturesByProject()")
+    class ListCandidaturesByProject {
+
+        @Test
+        @DisplayName("owning company: returns all candidatures for the project, mapped")
+        void listCandidaturesByProject_owner_returnsMapped() {
+            Candidature candidature = new Candidature();
+
+            when(projectRepository.findById(projectId)).thenReturn(Optional.of(openProject));
+            when(candidatureRepository.findByProjectId(projectId)).thenReturn(List.of(candidature));
+            when(candidatureMapper.toResponse(candidature)).thenReturn(new CandidatureResponse());
+
+            List<CandidatureResponse> result = projectService.listCandidaturesByProject(companyId, projectId);
+
+            assertThat(result).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("caller is not the owner: throws InvalidProjectOperationException")
+        void listCandidaturesByProject_notOwner_throws() {
+            UUID otherCompanyId = UUID.randomUUID();
+            when(projectRepository.findById(projectId)).thenReturn(Optional.of(openProject));
+
+            assertThatThrownBy(() -> projectService.listCandidaturesByProject(otherCompanyId, projectId))
+                    .isInstanceOf(InvalidProjectOperationException.class);
+        }
+    }
+
+    // =========================================================================
     // applyToProject
     // =========================================================================
 

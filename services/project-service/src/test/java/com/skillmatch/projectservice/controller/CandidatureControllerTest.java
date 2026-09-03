@@ -162,6 +162,40 @@ class CandidatureControllerTest {
     }
 
     // =========================================================================
+    // GET /api/v1/projects/{projectId}/candidatures
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/projects/{projectId}/candidatures")
+    class ListCandidaturesForProject {
+
+        @Test
+        @DisplayName("owning company → 200 OK with candidatures")
+        void listCandidaturesForProject_success() throws Exception {
+            UUID companyId = UUID.randomUUID();
+            UUID projectId = UUID.randomUUID();
+            when(userServiceClient.resolveCurrentUserId()).thenReturn(companyId);
+            when(projectService.listCandidaturesByProject(companyId, projectId))
+                    .thenReturn(List.of(new CandidatureResponse()));
+
+            mockMvc.perform(get("/api/v1/projects/{projectId}/candidatures", projectId)
+                            .with(jwt().authorities(ROLE_COMPANY)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(1)));
+        }
+
+        @Test
+        @DisplayName("PROFESSIONAL role → 403 Forbidden")
+        void listCandidaturesForProject_wrongRole_forbidden() throws Exception {
+            UUID projectId = UUID.randomUUID();
+
+            mockMvc.perform(get("/api/v1/projects/{projectId}/candidatures", projectId)
+                            .with(jwt().authorities(ROLE_PROFESSIONAL)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
     // PUT /api/v1/projects/{projectId}/candidatures/{candidatureId}/accept
     // =========================================================================
 
