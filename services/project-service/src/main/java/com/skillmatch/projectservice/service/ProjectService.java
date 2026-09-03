@@ -53,6 +53,11 @@ public interface ProjectService {
     CandidatureResponse applyToProject(UUID professionalId, UUID projectId, CandidatureRequest request);
 
     /**
+     * Returns all candidatures submitted by the given professional, across all projects.
+     */
+    List<CandidatureResponse> listCandidaturesByProfessional(UUID professionalId);
+
+    /**
      * Accepts a candidature. Only the owning company may accept, only one candidature per
      * project may ever be ACCEPTED, and all other PENDING candidatures for the same project
      * are automatically REJECTED. Transitions the project to ASSIGNED and publishes candidature.accepted.

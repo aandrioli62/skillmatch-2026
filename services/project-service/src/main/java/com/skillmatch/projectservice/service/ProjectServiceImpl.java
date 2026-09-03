@@ -170,6 +170,14 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<CandidatureResponse> listCandidaturesByProfessional(UUID professionalId) {
+        return candidatureRepository.findByProfessionalId(professionalId).stream()
+                .map(candidatureMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public CandidatureResponse acceptCandidature(UUID companyId, UUID projectId, UUID candidatureId) {
         Project project = findProjectById(projectId);
         assertOwnership(project, companyId);

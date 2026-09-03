@@ -21,12 +21,15 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -126,6 +129,35 @@ class CandidatureControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isServiceUnavailable());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/v1/projects/candidatures/mine
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/projects/candidatures/mine")
+    class ListMyCandidatures {
+
+        @Test
+        @DisplayName("PROFESSIONAL caller → 200 OK with own candidatures")
+        void listMyCandidatures_success() throws Exception {
+            UUID professionalId = UUID.randomUUID();
+            when(userServiceClient.resolveCurrentUserId()).thenReturn(professionalId);
+            when(projectService.listCandidaturesByProfessional(professionalId))
+                    .thenReturn(List.of(new CandidatureResponse()));
+
+            mockMvc.perform(get("/api/v1/projects/candidatures/mine").with(jwt().authorities(ROLE_PROFESSIONAL)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$", hasSize(1)));
+        }
+
+        @Test
+        @DisplayName("COMPANY role → 403 Forbidden")
+        void listMyCandidatures_wrongRole_forbidden() throws Exception {
+            mockMvc.perform(get("/api/v1/projects/candidatures/mine").with(jwt().authorities(ROLE_COMPANY)))
+                    .andExpect(status().isForbidden());
         }
     }
 

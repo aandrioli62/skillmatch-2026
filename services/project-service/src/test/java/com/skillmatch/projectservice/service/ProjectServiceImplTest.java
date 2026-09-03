@@ -254,6 +254,29 @@ class ProjectServiceImplTest {
     }
 
     // =========================================================================
+    // listCandidaturesByProfessional
+    // =========================================================================
+
+    @Nested
+    @DisplayName("listCandidaturesByProfessional()")
+    class ListCandidaturesByProfessional {
+
+        @Test
+        @DisplayName("returns all candidatures submitted by the professional, mapped")
+        void listCandidaturesByProfessional_returnsMapped() {
+            UUID professionalId = UUID.randomUUID();
+            Candidature candidature = new Candidature();
+
+            when(candidatureRepository.findByProfessionalId(professionalId)).thenReturn(List.of(candidature));
+            when(candidatureMapper.toResponse(candidature)).thenReturn(new CandidatureResponse());
+
+            List<CandidatureResponse> result = projectService.listCandidaturesByProfessional(professionalId);
+
+            assertThat(result).hasSize(1);
+        }
+    }
+
+    // =========================================================================
     // applyToProject
     // =========================================================================
 
