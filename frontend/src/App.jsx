@@ -4,9 +4,17 @@ import PlaceholderPage from './components/PlaceholderPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import { useAuth } from './context/AuthContext'
 import AdminDashboard from './pages/admin/Dashboard'
+import CompanyContracts from './pages/company/Contracts'
 import CompanyDashboard from './pages/company/Dashboard'
+import CompanyPayments from './pages/company/Payments'
+import CompanyProjects from './pages/company/Projects'
 import NotFound from './pages/NotFound'
+import ProfessionalApplications from './pages/professional/Applications'
+import ProfessionalContracts from './pages/professional/Contracts'
 import ProfessionalDashboard from './pages/professional/Dashboard'
+import ProfessionalFeedback from './pages/professional/Feedback'
+import ProfessionalPayments from './pages/professional/Payments'
+import ProfessionalProjects from './pages/professional/Projects'
 import Unauthorized from './pages/Unauthorized'
 
 function RoleHome() {
@@ -36,7 +44,7 @@ function App() {
           path="/professional/projects"
           element={
             <ProtectedRoute allowedRoles={['PROFESSIONAL']}>
-              <PlaceholderPage title="Progetti disponibili" />
+              <ProfessionalProjects />
             </ProtectedRoute>
           }
         />
@@ -44,7 +52,23 @@ function App() {
           path="/professional/applications"
           element={
             <ProtectedRoute allowedRoles={['PROFESSIONAL']}>
-              <PlaceholderPage title="Le mie candidature" />
+              <ProfessionalApplications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/professional/contracts"
+          element={
+            <ProtectedRoute allowedRoles={['PROFESSIONAL']}>
+              <ProfessionalContracts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/professional/payments"
+          element={
+            <ProtectedRoute allowedRoles={['PROFESSIONAL']}>
+              <ProfessionalPayments />
             </ProtectedRoute>
           }
         />
@@ -52,7 +76,7 @@ function App() {
           path="/professional/feedback"
           element={
             <ProtectedRoute allowedRoles={['PROFESSIONAL']}>
-              <PlaceholderPage title="Feedback ricevuti" />
+              <ProfessionalFeedback />
             </ProtectedRoute>
           }
         />
@@ -69,7 +93,7 @@ function App() {
           path="/company/projects"
           element={
             <ProtectedRoute allowedRoles={['COMPANY']}>
-              <PlaceholderPage title="I miei progetti" />
+              <CompanyProjects />
             </ProtectedRoute>
           }
         />
@@ -77,7 +101,7 @@ function App() {
           path="/company/contracts"
           element={
             <ProtectedRoute allowedRoles={['COMPANY']}>
-              <PlaceholderPage title="Contratti" />
+              <CompanyContracts />
             </ProtectedRoute>
           }
         />
@@ -85,7 +109,7 @@ function App() {
           path="/company/payments"
           element={
             <ProtectedRoute allowedRoles={['COMPANY']}>
-              <PlaceholderPage title="Pagamenti" />
+              <CompanyPayments />
             </ProtectedRoute>
           }
         />

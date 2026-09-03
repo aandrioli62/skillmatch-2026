@@ -35,6 +35,8 @@ const NAV_ITEMS = {
     { label: 'Dashboard', path: '/professional', icon: <DashboardIcon /> },
     { label: 'Progetti disponibili', path: '/professional/projects', icon: <WorkIcon /> },
     { label: 'Le mie candidature', path: '/professional/applications', icon: <AssignmentIcon /> },
+    { label: 'Contratti', path: '/professional/contracts', icon: <DescriptionIcon /> },
+    { label: 'Pagamenti', path: '/professional/payments', icon: <PaymentIcon /> },
     { label: 'Feedback ricevuti', path: '/professional/feedback', icon: <StarIcon /> },
   ],
   COMPANY: [
