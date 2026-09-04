@@ -5,11 +5,13 @@ import com.skillmatch.userservice.config.RabbitMQConfig;
 import com.skillmatch.userservice.dto.request.CompanyProfileRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalProfileRequest;
 import com.skillmatch.userservice.dto.request.UserRegistrationRequest;
+import com.skillmatch.userservice.model.PortfolioItem;
 import com.skillmatch.userservice.model.Skill;
 import com.skillmatch.userservice.model.User;
 import com.skillmatch.userservice.model.UserSkill;
 import com.skillmatch.userservice.model.UserSkillId;
 import com.skillmatch.userservice.model.enums.UserRole;
+import com.skillmatch.userservice.repository.PortfolioItemRepository;
 import com.skillmatch.userservice.repository.SkillRepository;
 import com.skillmatch.userservice.repository.UserRepository;
 import com.skillmatch.userservice.repository.UserSkillRepository;
@@ -92,6 +94,8 @@ class UserServiceIntegrationTest {
     private SkillRepository skillRepository;
     @Autowired
     private UserSkillRepository userSkillRepository;
+    @Autowired
+    private PortfolioItemRepository portfolioItemRepository;
 
     private String eventsQueueName;
 
@@ -180,7 +184,13 @@ class UserServiceIntegrationTest {
         userSkill.setId(new UserSkillId(userId, java.getId()));
         userSkill.setUser(user);
         userSkill.setSkill(java);
+        userSkill.setCertificationUrl("https://cert.example.com/java-associate");
         userSkillRepository.save(userSkill);
+
+        UserSkill savedUserSkill = userSkillRepository.findById(new UserSkillId(userId, java.getId())).orElseThrow();
+        assertThat(savedUserSkill.getCertificationUrl()).isEqualTo("https://cert.example.com/java-associate");
+        assertThat(savedUserSkill.getUser().getId()).isEqualTo(userId);
+        assertThat(savedUserSkill.getSkill().getId()).isEqualTo(java.getId());
 
         mockMvc.perform(get("/api/v1/users/professionals/search")
                         .param("skill", "java")
@@ -249,5 +259,35 @@ class UserServiceIntegrationTest {
 
         mockMvc.perform(get("/api/v1/admin/users"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void portfolioItemsCanBePersistedAndRetrievedByUser() throws Exception {
+        UserRegistrationRequest registration = registrationRequest(UserRole.PROFESSIONAL, "portfolio@example.com");
+
+        String response = mockMvc.perform(post("/api/v1/users")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(registration)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        UUID userId = UUID.fromString(objectMapper.readTree(response).get("id").asText());
+        User user = userRepository.findById(userId).orElseThrow();
+
+        PortfolioItem item = new PortfolioItem();
+        item.setUser(user);
+        item.setTitle("E-commerce platform");
+        item.setDescription("Spring Boot backend built for a small e-commerce client");
+        item.setUrl("https://github.com/example/shop");
+        portfolioItemRepository.save(item);
+
+        var items = portfolioItemRepository.findByUserId(userId);
+
+        assertThat(items).hasSize(1);
+        assertThat(items.get(0).getId()).isNotNull();
+        assertThat(items.get(0).getTitle()).isEqualTo("E-commerce platform");
+        assertThat(items.get(0).getDescription()).isEqualTo("Spring Boot backend built for a small e-commerce client");
+        assertThat(items.get(0).getUrl()).isEqualTo("https://github.com/example/shop");
+        assertThat(items.get(0).getCreatedAt()).isNotNull();
+        assertThat(items.get(0).getUser().getId()).isEqualTo(userId);
     }
 }

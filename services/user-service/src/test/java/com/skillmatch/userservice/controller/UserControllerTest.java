@@ -168,6 +168,40 @@ class UserControllerTest {
     }
 
     // =========================================================================
+    // GET /api/v1/users/me
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/users/me")
+    class GetCurrentUserProfile {
+
+        @Test
+        @DisplayName("authenticated caller → 200 OK, resolved from the JWT subject")
+        void getCurrentUserProfile_success() throws Exception {
+            UserResponse response = buildUserResponse(UserRole.PROFESSIONAL, UserStatus.VALIDATED);
+
+            when(userService.getUserProfileByKeycloakId("kc-123")).thenReturn(response);
+
+            mockMvc.perform(get("/api/v1/users/me")
+                            .with(jwt().jwt(builder -> builder.subject("kc-123"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.role").value("PROFESSIONAL"))
+                    .andExpect(jsonPath("$.status").value("VALIDATED"));
+        }
+
+        @Test
+        @DisplayName("no user linked to this Keycloak identity → 404 Not Found")
+        void getCurrentUserProfile_notFound() throws Exception {
+            when(userService.getUserProfileByKeycloakId("kc-orphan"))
+                    .thenThrow(new UserNotFoundException("No user found for keycloakId: kc-orphan"));
+
+            mockMvc.perform(get("/api/v1/users/me")
+                            .with(jwt().jwt(builder -> builder.subject("kc-orphan"))))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    // =========================================================================
     // PUT /api/v1/users/{userId}/professional-profile
     // =========================================================================
 

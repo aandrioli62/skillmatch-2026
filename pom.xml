@@ -33,6 +33,8 @@
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <springdoc.version>2.5.0</springdoc.version>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <jacoco.version>0.8.12</jacoco.version>
+        <pmd.version>3.26.0</pmd.version>
     </properties>
 
     <dependencyManagement>
