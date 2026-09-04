@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppLayout from './components/AppLayout'
 import ProtectedRoute from './components/ProtectedRoute'
-import { useAuth } from './context/AuthContext'
+import { useAuth } from './hooks/useAuth'
 import AdminDashboard from './pages/admin/Dashboard'
 import AdminSettings from './pages/admin/Settings'
 import AdminTransactions from './pages/admin/Transactions'

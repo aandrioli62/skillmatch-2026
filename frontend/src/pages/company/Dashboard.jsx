@@ -1,7 +1,7 @@
 import { Box, Chip, List, ListItem, ListItemText, Paper, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
 import DataSection from '../../components/DataSection'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../hooks/useAuth'
 import api from '../../services/api'
 import { contractStatusInfo, projectStatusInfo } from '../../utils/format'
 

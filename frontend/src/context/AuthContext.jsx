@@ -1,8 +1,7 @@
 import { Box, CircularProgress } from '@mui/material'
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { AuthContext } from '../hooks/useAuth'
 import keycloak from '../keycloak'
-
-const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [initialized, setInitialized] = useState(false)
@@ -53,12 +52,4 @@ export function AuthProvider({ children }) {
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-  return ctx
 }
