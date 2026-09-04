@@ -1,42 +1,39 @@
-# Before applying:
-#   1. Replace YOUR_DOMAIN.example.com below with a real DNS name pointing at
-#      the Oracle VM's public IP. No domain yet? A free option is nip.io:
-#      point it at "<VM_PUBLIC_IP>.nip.io" (e.g. 132.145.10.4.nip.io) — no
-#      registrar needed, and Let's Encrypt's HTTP-01 challenge works with it.
-#   2. Replace YOUR_EMAIL@example.com with the address Let's Encrypt should
-#      use for expiry/revocation notices.
-#   3. Requires the Nginx Ingress Controller and cert-manager installed by
-#      infra/scripts/setup-oracle-vm.sh.
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-prod
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: YOUR_EMAIL@example.com
-    privateKeySecretRef:
-      name: letsencrypt-prod-account-key
-    solvers:
-      - http01:
-          ingress:
-            ingressClassName: nginx
----
+# Exposes the frontend, API Gateway and Keycloak on the Oracle VM's public IP
+# via nip.io (no real domain needed — <anything>.<IP>.nip.io resolves to <IP>).
+# Uses Traefik, which K3s installs by default (IngressClass "traefik") — no
+# separate Ingress Controller to install.
+#
+# HTTP only for now, no TLS/cert-manager: getting the app reachable end to end
+# was the priority given the deadline. To add HTTPS later, install cert-manager,
+# uncomment the ClusterIssuer below, and add a `tls:` block per host:
+#   helm upgrade --install cert-manager cert-manager \
+#     --repo https://charts.jetstack.io --namespace cert-manager --create-namespace --set installCRDs=true
+#
+# ---
+# apiVersion: cert-manager.io/v1
+# kind: ClusterIssuer
+# metadata:
+#   name: letsencrypt-prod
+# spec:
+#   acme:
+#     server: https://acme-v02.api.letsencrypt.org/directory
+#     email: YOUR_EMAIL@example.com
+#     privateKeySecretRef:
+#       name: letsencrypt-prod-account-key
+#     solvers:
+#       - http01:
+#           ingress:
+#             ingressClassName: traefik
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: skillmatch-ingress
   namespace: skillmatch
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
-  ingressClassName: nginx
-  tls:
-    - hosts:
-        - YOUR_DOMAIN.example.com
-      secretName: skillmatch-tls
+  ingressClassName: traefik
   rules:
-    - host: YOUR_DOMAIN.example.com
+    - host: 92.4.167.19.nip.io
       http:
         paths:
           - path: /api
@@ -46,11 +43,20 @@ spec:
                 name: api-gateway
                 port:
                   number: 8080
-          # Uncomment once the frontend (Phase 7) is deployed as "frontend-service":
-          # - path: /
-          #   pathType: Prefix
-          #   backend:
-          #     service:
-          #       name: frontend-service
-          #       port:
-          #         number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
+    - host: keycloak.92.4.167.19.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 8180

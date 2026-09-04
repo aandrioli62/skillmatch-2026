@@ -1,19 +1,18 @@
 # Shared config/secrets for all SkillMatch services (namespace: skillmatch).
 #
-# NOTE on Keycloak URIs: until the frontend (Phase 7) and public ingress+domain
-# (Phase 6, ingress.yaml) are wired up, every backend service and Keycloak's
-# KC_HOSTNAME below point at the in-cluster Service name. Once the frontend
-# obtains tokens from the browser via the public ingress URL, KC_HOSTNAME
-# (keycloak/deployment.yaml) and keycloak-issuer-uri here must both switch to
-# that public URL, or JWT "iss" validation will fail (issuer must match the
-# host the token was actually issued from).
+# NOTE on Keycloak URIs: issuer-uri must match what the browser actually gets
+# tokens from (the public ingress host, since that's what Keycloak stamps into
+# the JWT "iss" claim per KC_HOSTNAME in keycloak/deployment.yaml) — it's a
+# string comparison only, no network call. jwk-uri fetches signing keys, a
+# real network call, so it stays on the in-cluster Service name. Same split
+# already used locally in infra/docker-compose.yml.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: skillmatch-config
   namespace: skillmatch
 data:
-  keycloak-issuer-uri: "http://keycloak:8180/realms/skillmatch"
+  keycloak-issuer-uri: "http://keycloak.92.4.167.19.nip.io/realms/skillmatch"
   keycloak-jwk-uri: "http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs"
   rabbitmq-host: "rabbitmq"
   mongo-host: "mongodb"

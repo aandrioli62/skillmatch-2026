@@ -2,10 +2,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # deploy-k8s.sh — Apply the SkillMatch Kubernetes manifests in the right order.
 #
-# Prerequisites (from infra/scripts/setup-oracle-vm.sh):
-#   - K3s running, kubectl configured against it
-#   - Nginx Ingress Controller + cert-manager installed (only needed for
-#     infra/k8s/ingress.yaml)
+# Prerequisites:
+#   - K3s running, kubectl configured against it (Traefik ships with K3s by
+#     default and is what infra/k8s/ingress.yaml targets — nothing extra to
+#     install there; cert-manager isn't required yet, the app is HTTP-only)
 #   - GHCR packages (ghcr.io/aandrioli62/skillmatch/*) set to Public, so K3s
 #     can pull them without credentials
 #
@@ -45,7 +45,10 @@ kubectl apply -f infra/k8s/payment-service/
 kubectl apply -f infra/k8s/feedback-service/
 kubectl apply -f infra/k8s/notification-service/
 
-echo "Applying ingress (requires nginx-ingress + cert-manager)..."
+echo "Applying frontend..."
+kubectl apply -f infra/k8s/frontend/
+
+echo "Applying ingress (uses Traefik, K3s's default; HTTP only for now, see infra/k8s/ingress.yaml)..."
 kubectl apply -f infra/k8s/ingress.yaml
 
 echo "Done. Check status with: kubectl get pods -n skillmatch"
