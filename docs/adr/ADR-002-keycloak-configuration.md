@@ -1,4 +1,4 @@
-# ADR-002 — Keycloak Configuration and Realm Management
+# ADR-002: Keycloak Configuration and Realm Management
 
 | Campo        | Valore                                     |
 |--------------|--------------------------------------------|
@@ -16,7 +16,7 @@ SkillMatch richiede un sistema di autenticazione e autorizzazione centralizzato 
 - Registrazione e login utenti (SPA React) tramite **Authorization Code + PKCE**.
 - Tre ruoli applicativi distinti: `PROFESSIONAL`, `COMPANY`, `ADMIN`.
 - Comunicazione sicura tra microservizi (service-to-service) tramite **Client Credentials**.
-- Validazione JWT distribuita — ogni microservizio verifica autonomamente il token senza chiamare Keycloak ad ogni request.
+- Validazione JWT distribuita: ogni microservizio verifica autonomamente il token senza chiamare Keycloak ad ogni request.
 
 L'autenticazione è esternalizzata a Keycloak per seguire il principio **12-Factor III** (Externalized Configuration) e per non accoppiare la logica di identità ai singoli servizi.
 
@@ -77,9 +77,9 @@ I servizi backend non hanno utente umano associato. Client Credentials è il flo
 
 | Ruolo          | Descrizione                                                   |
 |----------------|---------------------------------------------------------------|
-| `PROFESSIONAL` | Professionista — applica a progetti, riceve pagamenti         |
-| `COMPANY`      | Azienda — pubblica progetti, seleziona candidati              |
-| `ADMIN`        | Amministratore — valida professionisti, configura commissioni |
+| `PROFESSIONAL` | Professionista, applica a progetti, riceve pagamenti          |
+| `COMPANY`      | Azienda, pubblica progetti, seleziona candidati                |
+| `ADMIN`        | Amministratore, valida professionisti, configura commissioni  |
 
 I ruoli sono **realm roles** (non client roles) per essere disponibili in tutti i client senza dover duplicare le configurazioni.
 
@@ -87,8 +87,8 @@ I ruoli sono **realm roles** (non client roles) per essere disponibili in tutti 
 
 Due mapper personalizzati sul client `skillmatch-spa`:
 
-1. **`realm-roles-mapper`** — inserisce i ruoli realm nel claim `roles` (array di stringhe) dell'access token e dell'ID token. Semplifica la lettura lato Spring Security (`hasAuthority('PROFESSIONAL')`).
-2. **`audience-mapper`** — aggiunge `skillmatch-spa` nell'array `aud` del token. Necessario per la validazione dell'audience nei resource server.
+1. **`realm-roles-mapper`**: inserisce i ruoli realm nel claim `roles` (array di stringhe) dell'access token e dell'ID token. Semplifica la lettura lato Spring Security (`hasAuthority('PROFESSIONAL')`).
+2. **`audience-mapper`**: aggiunge `skillmatch-spa` nell'array `aud` del token. Necessario per la validazione dell'audience nei resource server.
 
 Il claim `realm_access.roles` rimane disponibile tramite il `clientScope` standard `roles` (compatibilità con librerie che leggono il formato nativo Keycloak).
 
@@ -185,10 +185,10 @@ keycloak:
 Dopo modifiche alla configurazione Keycloak tramite Admin Console, esportare il realm con:
 
 ```bash
-# Metodo 1 — via kc.sh dentro il container (raccomandato, include tutti gli utenti)
+# Metodo 1: via kc.sh dentro il container (raccomandato, include tutti gli utenti)
 ./infra/scripts/export-realm.sh --method docker
 
-# Metodo 2 — via Admin REST API (richiede curl + jq)
+# Metodo 2: via Admin REST API (richiede curl + jq)
 ./infra/scripts/export-realm.sh --method api
 
 # Override variabili
@@ -207,7 +207,7 @@ Lo script scrive il JSON in `infra/keycloak/skillmatch-realm.json`.
    - skillmatch-m2m.secret → sostituire con "change-me-in-production"
    - password utenti test → mantenere solo in locale / .gitignore se necessario
 4. git add infra/keycloak/skillmatch-realm.json
-5. git commit -m "chore(keycloak): update realm configuration — <descrizione>"
+5. git commit -m "chore(keycloak): update realm configuration - <descrizione>"
 6. Il CI/CD (GitHub Actions) non ri-deploya Keycloak automaticamente;
    le modifiche al realm richiedono un rollout manuale in produzione.
 ```
@@ -255,7 +255,7 @@ Inclusi nel realm JSON **solo per sviluppo locale**. Devono essere rimossi o sos
 ## Conseguenze
 
 **Positive:**
-- Nessuna logica di autenticazione nei microservizi — solo validazione JWT stateless.
+- Nessuna logica di autenticazione nei microservizi: solo validazione JWT stateless.
 - Configurazione realm versionata in Git → riproducibilità ambienti (dev/CI/prod).
 - Standard OAuth 2.0 / OIDC → librerie mature in ogni linguaggio.
 - `--import-realm` rende il `docker compose up` completamente self-contained.
