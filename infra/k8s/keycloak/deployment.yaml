@@ -44,7 +44,7 @@ spec:
             # HTTP-only for now (see infra/k8s/ingress.yaml), switch to https://
             # once TLS/cert-manager is added.
             - name: KC_HOSTNAME
-              value: http://keycloak.92.4.167.19.nip.io
+              value: http://keycloak.92.4.167.195.nip.io
             - name: KEYCLOAK_ADMIN
               valueFrom:
                 secretKeyRef:

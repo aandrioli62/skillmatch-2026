@@ -33,7 +33,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: 92.4.167.19.nip.io
+    - host: 92.4.167.195.nip.io
       http:
         paths:
           - path: /api
@@ -50,7 +50,7 @@ spec:
                 name: frontend-service
                 port:
                   number: 80
-    - host: keycloak.92.4.167.19.nip.io
+    - host: keycloak.92.4.167.195.nip.io
       http:
         paths:
           - path: /
