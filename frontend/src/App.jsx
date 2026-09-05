@@ -17,6 +17,8 @@ import ProfessionalDashboard from './pages/professional/Dashboard'
 import ProfessionalFeedback from './pages/professional/Feedback'
 import ProfessionalPayments from './pages/professional/Payments'
 import ProfessionalProjects from './pages/professional/Projects'
+import Landing from './pages/Landing'
+import Register from './pages/Register'
 import Unauthorized from './pages/Unauthorized'
 
 function RoleHome() {
@@ -28,11 +30,21 @@ function RoleHome() {
   return <Navigate to="/unauthorized" replace />
 }
 
+// Anonymous visitors see the Landing page (login/register choice) instead of
+// being forced straight into the Keycloak redirect; an already-authenticated
+// visitor is sent on to their role's dashboard as before.
+function Root() {
+  const { authenticated } = useAuth()
+  return authenticated ? <RoleHome /> : <Landing />
+}
+
 function App() {
   return (
     <Routes>
+      <Route path="/" element={<Root />} />
+      <Route path="/register" element={<Register />} />
+
       <Route element={<AppLayout />}>
-        <Route path="/" element={<RoleHome />} />
 
         <Route
           path="/professional"

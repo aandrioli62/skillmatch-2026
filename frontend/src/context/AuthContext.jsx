@@ -15,7 +15,11 @@ export function AuthProvider({ children }) {
 
     keycloak
       .init({
-        onLoad: 'login-required',
+        // 'check-sso' (not 'login-required'): lets React Router render public
+        // pages (e.g. /register) for anonymous visitors. Protected routes force
+        // the login redirect themselves via ProtectedRoute.
+        onLoad: 'check-sso',
+        silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
         pkceMethod: 'S256',
         checkLoginIframe: false,
       })
@@ -45,6 +49,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     keycloak,
+    authenticated: !!keycloak.token,
     roles,
     hasRole: (role) => roles.includes(role),
     username: keycloak.tokenParsed?.preferred_username,

@@ -1437,8 +1437,10 @@
       }
     } ]
   },
-  "internationalizationEnabled" : false,
-  "supportedLocales" : [ ],
+  "internationalizationEnabled" : true,
+  "supportedLocales" : [ "it" ],
+  "defaultLocale" : "it",
+  "loginTheme" : "skillmatch",
   "authenticationFlows" : [ {
     "id" : "50cab61d-01b8-4642-88a7-61768f79787b",
     "alias" : "Account verification options",

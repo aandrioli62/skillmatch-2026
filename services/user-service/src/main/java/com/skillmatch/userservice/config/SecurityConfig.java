@@ -33,6 +33,8 @@ public class SecurityConfig {
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 // Public registration endpoint — controller is POST /api/v1/users (no /register suffix)
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
+                // Public self-service registration — creates the Keycloak identity too
+                .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                 // Admin endpoints — further restricted by @PreAuthorize on the controller
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 // All other API endpoints require authentication

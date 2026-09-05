@@ -24,6 +24,18 @@ spring:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/skillmatch}
           jwk-set-uri: ${KEYCLOAK_JWK_URI:http://localhost:8180/realms/skillmatch/protocol/openid-connect/certs}
 
+# Admin REST API credentials used by AuthController/KeycloakAdminClient to provision
+# self-service registrations. Reuses the same bootstrap admin already used to stand
+# up Keycloak itself (see infra/k8s/config.yaml, keycloak-admin-credentials) rather
+# than a dedicated service-account client.
+keycloak:
+  admin:
+    base-url: ${KEYCLOAK_ADMIN_URL:http://localhost:8180}
+    admin-realm: master
+    realm: ${KEYCLOAK_ADMIN_REALM:skillmatch}
+    username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+
 server:
   port: ${SERVER_PORT:8081}
 

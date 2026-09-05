@@ -69,6 +69,17 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(KeycloakAdminException.class)
+    public ProblemDetail handleKeycloakAdmin(KeycloakAdminException ex) {
+        log.error("Keycloak admin operation failed: {}", ex.getMessage(), ex);
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE, "Registration is temporarily unavailable. Please try again later.");
+        problem.setType(URI.create(PROBLEM_BASE_URI + "keycloak-unavailable"));
+        problem.setTitle("Identity Provider Unavailable");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
     // -------------------------------------------------------------------------
     // Validation exceptions
     // -------------------------------------------------------------------------

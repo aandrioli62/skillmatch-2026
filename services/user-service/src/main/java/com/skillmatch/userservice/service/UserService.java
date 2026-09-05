@@ -24,6 +24,13 @@ public interface UserService {
     UserResponse registerUser(UserRegistrationRequest request);
 
     /**
+     * Checks whether a user with the given email already exists, so callers that
+     * provision an identity in an external system (e.g. Keycloak) before registering
+     * can fail fast without creating an orphaned external account.
+     */
+    boolean emailExists(String email);
+
+    /**
      * Returns the base user record (status, role, email, timestamps).
      *
      * @throws com.skillmatch.userservice.exception.UserNotFoundException if user does not exist

@@ -60,6 +60,18 @@ spec:
                 configMapKeyRef:
                   name: skillmatch-config
                   key: keycloak-jwk-uri
+            - name: KEYCLOAK_ADMIN_URL
+              value: "http://keycloak:8180"
+            - name: KEYCLOAK_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-credentials
+                  key: username
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin-credentials
+                  key: password
             - name: JAVA_OPTS
               value: "-Xmx256m -Xms128m"
           startupProbe:

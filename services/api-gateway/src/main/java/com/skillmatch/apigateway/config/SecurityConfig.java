@@ -38,6 +38,8 @@ public class SecurityConfig {
                 .pathMatchers("/fallback/**").permitAll()
                 // Public registration endpoint — mirrors user-service's own SecurityConfig
                 .pathMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
+                // Public self-service registration — mirrors user-service's own SecurityConfig
+                .pathMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
                 // Fine-grained role checks (COMPANY/PROFESSIONAL/ADMIN) are enforced downstream
                 // by each service's own SecurityConfig; the gateway only validates the JWT.
                 .anyExchange().authenticated()

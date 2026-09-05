@@ -23,6 +23,11 @@ kubectl create configmap postgres-init \
 kubectl create configmap keycloak-realm \
   --from-file=skillmatch-realm.json=infra/keycloak/skillmatch-realm.json \
   --namespace skillmatch --dry-run=client -o yaml > infra/k8s/keycloak/realm-configmap.yaml
+kubectl create configmap keycloak-theme \
+  --from-file=theme.properties=infra/keycloak/themes/skillmatch/login/theme.properties \
+  --from-file=styles.css=infra/keycloak/themes/skillmatch/login/resources/css/styles.css \
+  --from-file=register-link.js=infra/keycloak/themes/skillmatch/login/resources/js/register-link.js \
+  --namespace skillmatch --dry-run=client -o yaml > infra/k8s/keycloak/theme-configmap.yaml
 
 echo "Applying namespace and shared config..."
 kubectl apply -f infra/k8s/namespace.yaml

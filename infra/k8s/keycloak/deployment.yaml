@@ -58,6 +58,15 @@ spec:
           volumeMounts:
             - name: realm-import
               mountPath: /opt/keycloak/data/import
+            - name: skillmatch-theme
+              mountPath: /opt/keycloak/themes/skillmatch/login/theme.properties
+              subPath: theme.properties
+            - name: skillmatch-theme
+              mountPath: /opt/keycloak/themes/skillmatch/login/resources/css/styles.css
+              subPath: styles.css
+            - name: skillmatch-theme
+              mountPath: /opt/keycloak/themes/skillmatch/login/resources/js/register-link.js
+              subPath: register-link.js
           livenessProbe:
             tcpSocket:
               port: 8180
@@ -81,6 +90,9 @@ spec:
         - name: realm-import
           configMap:
             name: keycloak-realm
+        - name: skillmatch-theme
+          configMap:
+            name: keycloak-theme
 ---
 apiVersion: v1
 kind: Service

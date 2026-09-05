@@ -27,7 +27,7 @@ services:
       - "5432:5432"
     networks: [skillmatch-net]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U skillmatch"]
+      test: ["CMD-SHELL", "pg_isready -U skillmatch -d postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -75,6 +75,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     volumes:
       - ./keycloak:/opt/keycloak/data/import:ro
+      - ./keycloak/themes/skillmatch:/opt/keycloak/themes/skillmatch:ro
     ports:
       - "8180:8180"
     depends_on:
@@ -117,6 +118,9 @@ services:
       RABBITMQ_HOST: rabbitmq
       KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/skillmatch
       KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_ADMIN_URL: http://keycloak:8180
+      KEYCLOAK_ADMIN_USERNAME: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
       JAVA_OPTS: "-Xmx256m -Xms128m"
     ports:
       - "8081:8081"

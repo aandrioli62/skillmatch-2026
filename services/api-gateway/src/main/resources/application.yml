@@ -7,7 +7,7 @@ spring:
         - id: user-service
           uri: http://${USER_SERVICE_HOST:user-service}:${USER_SERVICE_PORT:8081}
           predicates:
-            - Path=/api/v1/users/**, /api/v1/professionals/**, /api/v1/companies/**, /api/v1/admin/users/**
+            - Path=/api/v1/users/**, /api/v1/professionals/**, /api/v1/companies/**, /api/v1/admin/users/**, /api/v1/auth/**
           filters:
             - name: CircuitBreaker
               args:
@@ -108,6 +108,10 @@ resilience4j:
     instances:
       userServiceCB:
         base-config: default
+        # Self-service registration chains several sequential calls to the Keycloak
+        # Admin API (token + create user + role lookup + role assignment) on top of
+        # the usual DB writes, comfortably exceeding the default 4s budget.
+        timeout-duration: 10s
       projectServiceCB:
         base-config: default
       contractServiceCB:

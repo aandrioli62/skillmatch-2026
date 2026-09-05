@@ -10,10 +10,12 @@ import SettingsIcon from '@mui/icons-material/Settings'
 import StarIcon from '@mui/icons-material/Star'
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser'
 import WorkIcon from '@mui/icons-material/Work'
+import HandshakeIcon from '@mui/icons-material/Handshake'
 import {
   AppBar,
   Avatar,
   Box,
+  Chip,
   Divider,
   Drawer,
   IconButton,
@@ -27,6 +29,7 @@ import {
 import { useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import RequireProfile from './RequireProfile'
 
 const DRAWER_WIDTH = 260
 
@@ -60,6 +63,12 @@ function primaryRole(roles) {
   return null
 }
 
+const ROLE_COLOR = {
+  PROFESSIONAL: '#4f46e5',
+  COMPANY: '#14b8a6',
+  ADMIN: '#7c3aed',
+}
+
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { roles, username, logout } = useAuth()
@@ -68,31 +77,54 @@ export default function AppLayout() {
   const role = primaryRole(roles)
   const navItems = role ? NAV_ITEMS[role] : []
 
+  const roleColor = role ? ROLE_COLOR[role] : '#4f46e5'
+
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Toolbar>
-        <Typography variant="h6" noWrap sx={{ fontWeight: 700 }}>
+      <Toolbar
+        sx={{
+          background: 'linear-gradient(135deg, #4f46e5, #14b8a6)',
+          gap: 1,
+        }}
+      >
+        <HandshakeIcon sx={{ color: 'white' }} />
+        <Typography variant="h6" noWrap sx={{ fontWeight: 700, color: 'white' }}>
           SkillMatch
         </Typography>
       </Toolbar>
       <Divider />
-      <List sx={{ flexGrow: 1 }}>
-        {navItems.map((item) => (
-          <ListItemButton
-            key={item.path}
-            component={Link}
-            to={item.path}
-            selected={location.pathname === item.path}
-            onClick={() => setMobileOpen(false)}
-          >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.label} />
-          </ListItemButton>
-        ))}
+      <List sx={{ flexGrow: 1, py: 1 }}>
+        {navItems.map((item) => {
+          const isSelected = location.pathname === item.path
+          return (
+            <ListItemButton
+              key={item.path}
+              component={Link}
+              to={item.path}
+              selected={isSelected}
+              onClick={() => setMobileOpen(false)}
+              sx={{
+                mx: 1,
+                borderRadius: 2,
+                borderLeft: isSelected ? `3px solid ${roleColor}` : '3px solid transparent',
+                '&.Mui-selected': {
+                  bgcolor: `${roleColor}1a`,
+                  '&:hover': { bgcolor: `${roleColor}26` },
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: isSelected ? roleColor : undefined }}>{item.icon}</ListItemIcon>
+              <ListItemText
+                primary={item.label}
+                slotProps={{ primary: { sx: { fontWeight: isSelected ? 700 : 400 } } }}
+              />
+            </ListItemButton>
+          )
+        })}
       </List>
       <Divider />
       <List>
-        <ListItemButton onClick={logout}>
+        <ListItemButton onClick={logout} sx={{ mx: 1, borderRadius: 2 }}>
           <ListItemIcon>
             <LogoutIcon />
           </ListItemIcon>
@@ -121,12 +153,24 @@ export default function AppLayout() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            {role ? role.charAt(0) + role.slice(1).toLowerCase() : ''}
-          </Typography>
+          {role && (
+            <Chip
+              label={role.charAt(0) + role.slice(1).toLowerCase()}
+              size="small"
+              sx={{ bgcolor: `${roleColor}1a`, color: roleColor, fontWeight: 700 }}
+            />
+          )}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography variant="body2">{username}</Typography>
-            <Avatar sx={{ width: 32, height: 32 }}>{username?.charAt(0).toUpperCase()}</Avatar>
+            <Avatar
+              sx={{
+                width: 32,
+                height: 32,
+                background: 'linear-gradient(135deg, #4f46e5, #14b8a6)',
+              }}
+            >
+              {username?.charAt(0).toUpperCase()}
+            </Avatar>
           </Box>
         </Toolbar>
       </AppBar>
@@ -158,7 +202,9 @@ export default function AppLayout() {
 
       <Box component="main" sx={{ flexGrow: 1, p: 3, width: { md: `calc(100% - ${DRAWER_WIDTH}px)` } }}>
         <Toolbar />
-        <Outlet />
+        <RequireProfile>
+          <Outlet />
+        </RequireProfile>
       </Box>
     </Box>
   )

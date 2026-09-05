@@ -44,12 +44,12 @@ spec:
               subPath: init-databases.sql
           livenessProbe:
             exec:
-              command: ["pg_isready", "-U", "skillmatch"]
+              command: ["pg_isready", "-U", "skillmatch", "-d", "postgres"]
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             exec:
-              command: ["pg_isready", "-U", "skillmatch"]
+              command: ["pg_isready", "-U", "skillmatch", "-d", "postgres"]
             initialDelaySeconds: 10
             periodSeconds: 5
           resources:
