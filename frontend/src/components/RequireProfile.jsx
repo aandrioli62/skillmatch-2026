@@ -9,6 +9,10 @@ import api from '../services/api'
 // account created outside the self-service /register flow.
 export default function RequireProfile({ children }) {
   const { keycloak, hasRole } = useAuth()
+  // ADMIN accounts are never registered in user-service (no profile, no DB row
+  // — they only exist as a Keycloak realm role), so this safety net doesn't
+  // apply to them at all; the hook call still happens (rules of hooks), its
+  // result is just ignored below.
   const { loading, notRegistered, refetch } = useCurrentUser()
 
   const role = hasRole('PROFESSIONAL') ? 'PROFESSIONAL' : hasRole('COMPANY') ? 'COMPANY' : null
@@ -18,6 +22,10 @@ export default function RequireProfile({ children }) {
   const [companyName, setCompanyName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+
+  if (hasRole('ADMIN')) {
+    return children
+  }
 
   if (loading) {
     return (

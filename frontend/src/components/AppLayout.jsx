@@ -5,6 +5,7 @@ import DescriptionIcon from '@mui/icons-material/Description'
 import LogoutIcon from '@mui/icons-material/Logout'
 import MenuIcon from '@mui/icons-material/Menu'
 import PaymentIcon from '@mui/icons-material/Payment'
+import PersonIcon from '@mui/icons-material/Person'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
 import SettingsIcon from '@mui/icons-material/Settings'
 import StarIcon from '@mui/icons-material/Star'
@@ -23,11 +24,13 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   Toolbar,
   Typography,
 } from '@mui/material'
 import { useState } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import RequireProfile from './RequireProfile'
 
@@ -71,8 +74,10 @@ const ROLE_COLOR = {
 
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [userMenuAnchor, setUserMenuAnchor] = useState(null)
   const { roles, username, logout } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const role = primaryRole(roles)
   const navItems = role ? NAV_ITEMS[role] : []
@@ -160,7 +165,10 @@ export default function AppLayout() {
               sx={{ bgcolor: `${roleColor}1a`, color: roleColor, fontWeight: 700 }}
             />
           )}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }}
+            onClick={(e) => setUserMenuAnchor(e.currentTarget)}
+          >
             <Typography variant="body2">{username}</Typography>
             <Avatar
               sx={{
@@ -172,6 +180,34 @@ export default function AppLayout() {
               {username?.charAt(0).toUpperCase()}
             </Avatar>
           </Box>
+          <Menu
+            anchorEl={userMenuAnchor}
+            open={Boolean(userMenuAnchor)}
+            onClose={() => setUserMenuAnchor(null)}
+          >
+            <MenuItem
+              onClick={() => {
+                setUserMenuAnchor(null)
+                navigate('/profile')
+              }}
+            >
+              <ListItemIcon>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+              Il mio profilo
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setUserMenuAnchor(null)
+                logout()
+              }}
+            >
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              Logout
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
 

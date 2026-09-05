@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -16,7 +17,10 @@ public class ProfessionalProfileResponse {
     private String firstName;
     private String lastName;
     private String bio;
+    private String paymentAccount;
     private ReputationLevel reputationLevel;
     private BigDecimal avgRating;
     private Integer totalReviews;
+    private List<ProfessionalSkillResponse> skills;
+    private List<PortfolioItemResponse> portfolioItems;
 }

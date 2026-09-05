@@ -1,10 +1,14 @@
 package com.skillmatch.userservice.controller;
 
 import com.skillmatch.userservice.dto.request.CompanyProfileRequest;
+import com.skillmatch.userservice.dto.request.PortfolioItemRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalProfileRequest;
+import com.skillmatch.userservice.dto.request.ProfessionalSkillRequest;
 import com.skillmatch.userservice.dto.request.UserRegistrationRequest;
 import com.skillmatch.userservice.dto.response.CompanyProfileResponse;
+import com.skillmatch.userservice.dto.response.PortfolioItemResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
+import com.skillmatch.userservice.dto.response.ProfessionalSkillResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import com.skillmatch.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -113,6 +117,28 @@ public class UserController {
     // -------------------------------------------------------------------------
 
     @Operation(
+            summary = "Get the professional's own profile",
+            description = "Self-service: returns the professional profile (bio, skills, portfolio, payment "
+                    + "account) for the authenticated professional, used to pre-fill the edit form. "
+                    + "The user must have role PROFESSIONAL."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Profile returned",
+                    content = @Content(schema = @Schema(implementation = ProfessionalProfileResponse.class))),
+            @ApiResponse(responseCode = "404", description = "User not found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "422", description = "User is not a PROFESSIONAL",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @GetMapping("/{userId}/professional-profile")
+    @PreAuthorize("hasRole('PROFESSIONAL')")
+    public ResponseEntity<ProfessionalProfileResponse> getProfessionalProfile(
+            @Parameter(description = "User UUID", required = true)
+            @PathVariable("userId") UUID userId) {
+        return ResponseEntity.ok(userService.getProfessionalProfile(userId));
+    }
+
+    @Operation(
             summary = "Create or update professional profile",
             description = "Creates or updates the professional profile (name, bio, payment account) "
                     + "for the authenticated professional. The user must have role PROFESSIONAL."
@@ -136,9 +162,77 @@ public class UserController {
         return ResponseEntity.ok(userService.updateProfessionalProfile(userId, request));
     }
 
+    @Operation(
+            summary = "Replace the professional's skills",
+            description = "Replaces the full set of skills (each with an optional certification link) for the "
+                    + "authenticated professional. A skill name not yet in the shared catalog is added to it. "
+                    + "The user must have role PROFESSIONAL."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Skills updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid request body",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "User not found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "422", description = "User is not a PROFESSIONAL",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PutMapping("/{userId}/skills")
+    @PreAuthorize("hasRole('PROFESSIONAL')")
+    public ResponseEntity<List<ProfessionalSkillResponse>> updateProfessionalSkills(
+            @Parameter(description = "User UUID", required = true)
+            @PathVariable("userId") UUID userId,
+            @Valid @RequestBody List<ProfessionalSkillRequest> skills) {
+        return ResponseEntity.ok(userService.updateProfessionalSkills(userId, skills));
+    }
+
+    @Operation(
+            summary = "Replace the professional's portfolio items",
+            description = "Replaces the full list of portfolio items (title, description, link) for the "
+                    + "authenticated professional. The user must have role PROFESSIONAL."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Portfolio updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid request body",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "User not found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "422", description = "User is not a PROFESSIONAL",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PutMapping("/{userId}/portfolio-items")
+    @PreAuthorize("hasRole('PROFESSIONAL')")
+    public ResponseEntity<List<PortfolioItemResponse>> updatePortfolioItems(
+            @Parameter(description = "User UUID", required = true)
+            @PathVariable("userId") UUID userId,
+            @Valid @RequestBody List<PortfolioItemRequest> items) {
+        return ResponseEntity.ok(userService.updatePortfolioItems(userId, items));
+    }
+
     // -------------------------------------------------------------------------
     // Company profile
     // -------------------------------------------------------------------------
+
+    @Operation(
+            summary = "Get the company's own profile",
+            description = "Self-service: returns the company profile for the authenticated company, used to "
+                    + "pre-fill the edit form. The user must have role COMPANY."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Profile returned",
+                    content = @Content(schema = @Schema(implementation = CompanyProfileResponse.class))),
+            @ApiResponse(responseCode = "404", description = "User not found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "422", description = "User is not a COMPANY",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @GetMapping("/{userId}/company-profile")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<CompanyProfileResponse> getCompanyProfile(
+            @Parameter(description = "User UUID", required = true)
+            @PathVariable("userId") UUID userId) {
+        return ResponseEntity.ok(userService.getCompanyProfile(userId));
+    }
 
     @Operation(
             summary = "Create or update company profile",

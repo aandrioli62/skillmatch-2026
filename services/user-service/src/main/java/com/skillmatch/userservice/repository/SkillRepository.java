@@ -12,4 +12,6 @@ public interface SkillRepository extends JpaRepository<Skill, UUID> {
     Optional<Skill> findByNameIgnoreCase(String name);
 
     List<Skill> findByCategory(String category);
+
+    List<Skill> findTop20ByNameContainingIgnoreCaseOrderByNameAsc(String namePart);
 }

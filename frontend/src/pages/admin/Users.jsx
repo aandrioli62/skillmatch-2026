@@ -16,6 +16,7 @@ import {
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 import DataSection from '../../components/DataSection'
+import UserDetailDialog from '../../components/UserDetailDialog'
 import api from '../../services/api'
 
 const STATUS_COLOR = {
@@ -32,6 +33,7 @@ export default function AdminUsers() {
   const [profileNames, setProfileNames] = useState({})
 
   const [suspendTarget, setSuspendTarget] = useState(null)
+  const [detailTarget, setDetailTarget] = useState(null)
   const [message, setMessage] = useState(null)
 
   const loadUsers = () => {
@@ -91,7 +93,12 @@ export default function AdminUsers() {
       >
         <List disablePadding>
           {data?.content.map((user) => (
-            <ListItem key={user.id} divider>
+            <ListItem
+              key={user.id}
+              divider
+              onClick={() => setDetailTarget(user)}
+              sx={{ cursor: 'pointer' }}
+            >
               <ListItemText
                 primary={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -103,12 +110,27 @@ export default function AdminUsers() {
               />
               <Stack direction="row" spacing={1} alignItems="center">
                 {user.role === 'PROFESSIONAL' && user.status !== 'VALIDATED' && (
-                  <Button size="small" variant="contained" onClick={() => validateUser(user)}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      validateUser(user)
+                    }}
+                  >
                     Valida
                   </Button>
                 )}
                 {user.status !== 'SUSPENDED' && (
-                  <Button size="small" variant="outlined" color="error" onClick={() => setSuspendTarget(user)}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="error"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSuspendTarget(user)
+                    }}
+                  >
                     Sospendi
                   </Button>
                 )}
@@ -143,6 +165,17 @@ export default function AdminUsers() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <UserDetailDialog
+        key={detailTarget?.id ?? 'none'}
+        user={detailTarget}
+        onClose={() => setDetailTarget(null)}
+        onValidate={validateUser}
+        onSuspend={(user) => {
+          setDetailTarget(null)
+          setSuspendTarget(user)
+        }}
+      />
 
       <Snackbar open={Boolean(message)} autoHideDuration={4000} onClose={() => setMessage(null)} message={message} />
     </>

@@ -1,10 +1,14 @@
 package com.skillmatch.userservice.service;
 
 import com.skillmatch.userservice.dto.request.CompanyProfileRequest;
+import com.skillmatch.userservice.dto.request.PortfolioItemRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalProfileRequest;
+import com.skillmatch.userservice.dto.request.ProfessionalSkillRequest;
 import com.skillmatch.userservice.dto.request.UserRegistrationRequest;
 import com.skillmatch.userservice.dto.response.CompanyProfileResponse;
+import com.skillmatch.userservice.dto.response.PortfolioItemResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
+import com.skillmatch.userservice.dto.response.ProfessionalSkillResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import com.skillmatch.userservice.event.UserRegisteredEvent;
 import com.skillmatch.userservice.event.UserValidatedEvent;
@@ -12,17 +16,25 @@ import com.skillmatch.userservice.exception.DuplicateEmailException;
 import com.skillmatch.userservice.exception.InvalidUserOperationException;
 import com.skillmatch.userservice.exception.UserNotFoundException;
 import com.skillmatch.userservice.mapper.CompanyProfileMapper;
+import com.skillmatch.userservice.mapper.PortfolioItemMapper;
 import com.skillmatch.userservice.mapper.ProfessionalProfileMapper;
+import com.skillmatch.userservice.mapper.SkillMapper;
 import com.skillmatch.userservice.mapper.UserMapper;
 import com.skillmatch.userservice.model.CompanyProfile;
+import com.skillmatch.userservice.model.PortfolioItem;
 import com.skillmatch.userservice.model.ProfessionalProfile;
+import com.skillmatch.userservice.model.Skill;
 import com.skillmatch.userservice.model.User;
+import com.skillmatch.userservice.model.UserSkill;
 import com.skillmatch.userservice.model.enums.ReputationLevel;
 import com.skillmatch.userservice.model.enums.UserRole;
 import com.skillmatch.userservice.model.enums.UserStatus;
 import com.skillmatch.userservice.repository.CompanyProfileRepository;
+import com.skillmatch.userservice.repository.PortfolioItemRepository;
 import com.skillmatch.userservice.repository.ProfessionalProfileRepository;
+import com.skillmatch.userservice.repository.SkillRepository;
 import com.skillmatch.userservice.repository.UserRepository;
+import com.skillmatch.userservice.repository.UserSkillRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -60,6 +72,12 @@ class UserServiceImplTest {
     @Mock
     private CompanyProfileRepository companyProfileRepository;
     @Mock
+    private SkillRepository skillRepository;
+    @Mock
+    private UserSkillRepository userSkillRepository;
+    @Mock
+    private PortfolioItemRepository portfolioItemRepository;
+    @Mock
     private EventPublisherService eventPublisher;
     @Mock
     private UserMapper userMapper;
@@ -67,6 +85,10 @@ class UserServiceImplTest {
     private ProfessionalProfileMapper professionalProfileMapper;
     @Mock
     private CompanyProfileMapper companyProfileMapper;
+    @Mock
+    private SkillMapper skillMapper;
+    @Mock
+    private PortfolioItemMapper portfolioItemMapper;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -385,6 +407,115 @@ class UserServiceImplTest {
     }
 
     // =========================================================================
+    // updateProfessionalSkills
+    // =========================================================================
+
+    @Nested
+    @DisplayName("updateProfessionalSkills()")
+    class UpdateProfessionalSkills {
+
+        @Test
+        @DisplayName("existing catalog skill: reuses it, replaces the previous skill set")
+        void updateSkills_existingSkill_reusesCatalogEntry() {
+            Skill javaSkill = new Skill();
+            javaSkill.setId(UUID.randomUUID());
+            javaSkill.setName("Java");
+
+            ProfessionalSkillRequest request = new ProfessionalSkillRequest();
+            request.setSkillName("Java");
+            request.setCertificationUrl("https://cert.example.com/java");
+
+            ProfessionalSkillResponse response = new ProfessionalSkillResponse();
+            response.setSkillName("Java");
+
+            UserSkill previous = new UserSkill();
+            when(userRepository.findById(userId)).thenReturn(Optional.of(professionalUser));
+            when(userSkillRepository.findByIdUserId(userId)).thenReturn(List.of(previous));
+            when(skillRepository.findByNameIgnoreCase("Java")).thenReturn(Optional.of(javaSkill));
+            when(userSkillRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(skillMapper.toProfessionalSkillResponse(any())).thenReturn(response);
+
+            List<ProfessionalSkillResponse> result = userService.updateProfessionalSkills(userId, List.of(request));
+
+            assertThat(result).hasSize(1);
+            verify(userSkillRepository).deleteAll(List.of(previous));
+            verify(skillRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("unknown skill name: creates it in the shared catalog")
+        void updateSkills_newSkill_createsCatalogEntry() {
+            ProfessionalSkillRequest request = new ProfessionalSkillRequest();
+            request.setSkillName("Rust");
+
+            Skill created = new Skill();
+            created.setId(UUID.randomUUID());
+            created.setName("Rust");
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(professionalUser));
+            when(userSkillRepository.findByIdUserId(userId)).thenReturn(List.of());
+            when(skillRepository.findByNameIgnoreCase("Rust")).thenReturn(Optional.empty());
+            when(skillRepository.save(any())).thenReturn(created);
+            when(userSkillRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(skillMapper.toProfessionalSkillResponse(any())).thenReturn(new ProfessionalSkillResponse());
+
+            userService.updateProfessionalSkills(userId, List.of(request));
+
+            verify(skillRepository).save(argThat(skill -> "Rust".equals(skill.getName())));
+        }
+
+        @Test
+        @DisplayName("non-PROFESSIONAL user: throws InvalidUserOperationException")
+        void updateSkills_wrongRole_throws() {
+            when(userRepository.findById(userId)).thenReturn(Optional.of(companyUser));
+
+            assertThatThrownBy(() -> userService.updateProfessionalSkills(userId, List.of()))
+                    .isInstanceOf(InvalidUserOperationException.class);
+        }
+    }
+
+    // =========================================================================
+    // updatePortfolioItems
+    // =========================================================================
+
+    @Nested
+    @DisplayName("updatePortfolioItems()")
+    class UpdatePortfolioItems {
+
+        @Test
+        @DisplayName("replaces the previous portfolio with the new list")
+        void updatePortfolioItems_success() {
+            PortfolioItemRequest request = new PortfolioItemRequest();
+            request.setTitle("Sito e-commerce");
+            request.setUrl("https://example.com");
+
+            PortfolioItem previous = new PortfolioItem();
+            PortfolioItemResponse response = new PortfolioItemResponse();
+            response.setTitle("Sito e-commerce");
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(professionalUser));
+            when(portfolioItemRepository.findByUserId(userId)).thenReturn(List.of(previous));
+            when(portfolioItemRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(portfolioItemMapper.toResponse(any())).thenReturn(response);
+
+            List<PortfolioItemResponse> result = userService.updatePortfolioItems(userId, List.of(request));
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).getTitle()).isEqualTo("Sito e-commerce");
+            verify(portfolioItemRepository).deleteAll(List.of(previous));
+        }
+
+        @Test
+        @DisplayName("non-PROFESSIONAL user: throws InvalidUserOperationException")
+        void updatePortfolioItems_wrongRole_throws() {
+            when(userRepository.findById(userId)).thenReturn(Optional.of(companyUser));
+
+            assertThatThrownBy(() -> userService.updatePortfolioItems(userId, List.of()))
+                    .isInstanceOf(InvalidUserOperationException.class);
+        }
+    }
+
+    // =========================================================================
     // updateCompanyProfile
     // =========================================================================
 
@@ -424,6 +555,41 @@ class UserServiceImplTest {
             assertThatThrownBy(() -> userService.updateCompanyProfile(userId, request))
                     .isInstanceOf(InvalidUserOperationException.class)
                     .hasMessageContaining("not a COMPANY");
+        }
+    }
+
+    // =========================================================================
+    // getCompanyProfile
+    // =========================================================================
+
+    @Nested
+    @DisplayName("getCompanyProfile()")
+    class GetCompanyProfile {
+
+        @Test
+        @DisplayName("existing profile: returns mapped response")
+        void getCompanyProfile_existing_returnsMapped() {
+            CompanyProfile existing = new CompanyProfile();
+            existing.setUser(companyUser);
+            CompanyProfileResponse response = new CompanyProfileResponse();
+            response.setCompanyName("Acme Srl");
+
+            when(userRepository.findById(userId)).thenReturn(Optional.of(companyUser));
+            when(companyProfileRepository.findByUserId(userId)).thenReturn(Optional.of(existing));
+            when(companyProfileMapper.toResponse(existing)).thenReturn(response);
+
+            CompanyProfileResponse result = userService.getCompanyProfile(userId);
+
+            assertThat(result.getCompanyName()).isEqualTo("Acme Srl");
+        }
+
+        @Test
+        @DisplayName("non-COMPANY user: throws InvalidUserOperationException")
+        void getCompanyProfile_wrongRole_throws() {
+            when(userRepository.findById(userId)).thenReturn(Optional.of(professionalUser));
+
+            assertThatThrownBy(() -> userService.getCompanyProfile(userId))
+                    .isInstanceOf(InvalidUserOperationException.class);
         }
     }
 

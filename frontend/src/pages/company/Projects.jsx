@@ -21,6 +21,7 @@ import {
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 import DataSection from '../../components/DataSection'
+import SkillPicker from '../../components/SkillPicker'
 import api from '../../services/api'
 import { candidatureStatusInfo, formatDate, projectStatusInfo, shortId } from '../../utils/format'
 
@@ -331,11 +332,11 @@ export default function CompanyProjects() {
             <Typography variant="subtitle2">Competenze richieste</Typography>
             {form.requirements.map((req, index) => (
               <Stack direction="row" spacing={1} key={index} alignItems="center">
-                <TextField
+                <SkillPicker
                   label="Skill"
                   value={req.skillName}
-                  onChange={(e) => updateRequirement(index, 'skillName', e.target.value)}
-                  fullWidth
+                  onChange={(newValue) => updateRequirement(index, 'skillName', newValue)}
+                  sx={{ flex: 1 }}
                 />
                 <TextField
                   select

@@ -18,6 +18,7 @@ import ProfessionalFeedback from './pages/professional/Feedback'
 import ProfessionalPayments from './pages/professional/Payments'
 import ProfessionalProjects from './pages/professional/Projects'
 import Landing from './pages/Landing'
+import Profile from './pages/Profile'
 import Register from './pages/Register'
 import Unauthorized from './pages/Unauthorized'
 
@@ -45,6 +46,15 @@ function App() {
       <Route path="/register" element={<Register />} />
 
       <Route element={<AppLayout />}>
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/professional"

@@ -1,10 +1,14 @@
 package com.skillmatch.userservice.service;
 
 import com.skillmatch.userservice.dto.request.CompanyProfileRequest;
+import com.skillmatch.userservice.dto.request.PortfolioItemRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalProfileRequest;
+import com.skillmatch.userservice.dto.request.ProfessionalSkillRequest;
 import com.skillmatch.userservice.dto.request.UserRegistrationRequest;
 import com.skillmatch.userservice.dto.response.CompanyProfileResponse;
+import com.skillmatch.userservice.dto.response.PortfolioItemResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
+import com.skillmatch.userservice.dto.response.ProfessionalSkillResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -56,6 +60,25 @@ public interface UserService {
     ProfessionalProfileResponse updateProfessionalProfile(UUID userId, ProfessionalProfileRequest request);
 
     /**
+     * Replaces the full set of skills (and optional certification links) for a professional.
+     * Skills not present in the request are removed from the professional's profile (the
+     * shared skill catalog entry itself is never deleted). Unknown skill names are added to
+     * the shared catalog on the fly.
+     *
+     * @throws com.skillmatch.userservice.exception.UserNotFoundException       if user does not exist
+     * @throws com.skillmatch.userservice.exception.InvalidUserOperationException if user is not a PROFESSIONAL
+     */
+    List<ProfessionalSkillResponse> updateProfessionalSkills(UUID userId, List<ProfessionalSkillRequest> skills);
+
+    /**
+     * Replaces the full list of portfolio items (title, description, link) for a professional.
+     *
+     * @throws com.skillmatch.userservice.exception.UserNotFoundException       if user does not exist
+     * @throws com.skillmatch.userservice.exception.InvalidUserOperationException if user is not a PROFESSIONAL
+     */
+    List<PortfolioItemResponse> updatePortfolioItems(UUID userId, List<PortfolioItemRequest> items);
+
+    /**
      * Admin: returns the professional profile for a given user, regardless of validation
      * status — used to display the applicant's name while reviewing a pending registration.
      *
@@ -72,6 +95,14 @@ public interface UserService {
      * @throws com.skillmatch.userservice.exception.InvalidUserOperationException if user is not a COMPANY
      */
     CompanyProfileResponse updateCompanyProfile(UUID userId, CompanyProfileRequest request);
+
+    /**
+     * Returns the company profile for a given user (self-service, used to pre-fill the edit form).
+     *
+     * @throws com.skillmatch.userservice.exception.UserNotFoundException       if user does not exist
+     * @throws com.skillmatch.userservice.exception.InvalidUserOperationException if user is not a COMPANY
+     */
+    CompanyProfileResponse getCompanyProfile(UUID userId);
 
     /**
      * Returns all validated professionals who possess the given skill (case-insensitive match).

@@ -1,10 +1,14 @@
 package com.skillmatch.userservice.service;
 
 import com.skillmatch.userservice.dto.request.CompanyProfileRequest;
+import com.skillmatch.userservice.dto.request.PortfolioItemRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalProfileRequest;
+import com.skillmatch.userservice.dto.request.ProfessionalSkillRequest;
 import com.skillmatch.userservice.dto.request.UserRegistrationRequest;
 import com.skillmatch.userservice.dto.response.CompanyProfileResponse;
+import com.skillmatch.userservice.dto.response.PortfolioItemResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
+import com.skillmatch.userservice.dto.response.ProfessionalSkillResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import com.skillmatch.userservice.event.UserRegisteredEvent;
 import com.skillmatch.userservice.event.UserValidatedEvent;
@@ -12,17 +16,26 @@ import com.skillmatch.userservice.exception.DuplicateEmailException;
 import com.skillmatch.userservice.exception.InvalidUserOperationException;
 import com.skillmatch.userservice.exception.UserNotFoundException;
 import com.skillmatch.userservice.mapper.CompanyProfileMapper;
+import com.skillmatch.userservice.mapper.PortfolioItemMapper;
 import com.skillmatch.userservice.mapper.ProfessionalProfileMapper;
+import com.skillmatch.userservice.mapper.SkillMapper;
 import com.skillmatch.userservice.mapper.UserMapper;
 import com.skillmatch.userservice.model.CompanyProfile;
+import com.skillmatch.userservice.model.PortfolioItem;
 import com.skillmatch.userservice.model.ProfessionalProfile;
+import com.skillmatch.userservice.model.Skill;
 import com.skillmatch.userservice.model.User;
+import com.skillmatch.userservice.model.UserSkill;
+import com.skillmatch.userservice.model.UserSkillId;
 import com.skillmatch.userservice.model.enums.ReputationLevel;
 import com.skillmatch.userservice.model.enums.UserRole;
 import com.skillmatch.userservice.model.enums.UserStatus;
 import com.skillmatch.userservice.repository.CompanyProfileRepository;
+import com.skillmatch.userservice.repository.PortfolioItemRepository;
 import com.skillmatch.userservice.repository.ProfessionalProfileRepository;
+import com.skillmatch.userservice.repository.SkillRepository;
 import com.skillmatch.userservice.repository.UserRepository;
+import com.skillmatch.userservice.repository.UserSkillRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -55,10 +68,15 @@ public class UserServiceImpl implements UserService {
     private final UserRepository                userRepository;
     private final ProfessionalProfileRepository professionalProfileRepository;
     private final CompanyProfileRepository      companyProfileRepository;
+    private final SkillRepository               skillRepository;
+    private final UserSkillRepository           userSkillRepository;
+    private final PortfolioItemRepository       portfolioItemRepository;
     private final EventPublisherService         eventPublisher;
     private final UserMapper                    userMapper;
     private final ProfessionalProfileMapper     professionalProfileMapper;
     private final CompanyProfileMapper          companyProfileMapper;
+    private final SkillMapper                   skillMapper;
+    private final PortfolioItemMapper           portfolioItemMapper;
 
     // =========================================================================
     // Registration
@@ -143,18 +161,65 @@ public class UserServiceImpl implements UserService {
         profile = professionalProfileRepository.save(profile);
 
         log.info("Professional profile updated: userId={}", userId);
-        return professionalProfileMapper.toResponse(profile);
+        return enrichWithSkillsAndPortfolio(professionalProfileMapper.toResponse(profile), userId);
+    }
+
+    @Override
+    public List<ProfessionalSkillResponse> updateProfessionalSkills(UUID userId, List<ProfessionalSkillRequest> skills) {
+        User user = findUserById(userId);
+        requireProfessional(user, userId);
+
+        userSkillRepository.deleteAll(userSkillRepository.findByIdUserId(userId));
+
+        List<UserSkill> saved = skills.stream()
+                .map(request -> {
+                    Skill skill = skillRepository.findByNameIgnoreCase(request.getSkillName())
+                            .orElseGet(() -> {
+                                Skill newSkill = new Skill();
+                                newSkill.setName(request.getSkillName());
+                                return skillRepository.save(newSkill);
+                            });
+
+                    UserSkill userSkill = new UserSkill();
+                    userSkill.setId(new UserSkillId(userId, skill.getId()));
+                    userSkill.setUser(user);
+                    userSkill.setSkill(skill);
+                    userSkill.setCertificationUrl(request.getCertificationUrl());
+                    return userSkillRepository.save(userSkill);
+                })
+                .toList();
+
+        log.info("Professional skills updated: userId={}, count={}", userId, saved.size());
+        return saved.stream().map(skillMapper::toProfessionalSkillResponse).toList();
+    }
+
+    @Override
+    public List<PortfolioItemResponse> updatePortfolioItems(UUID userId, List<PortfolioItemRequest> items) {
+        User user = findUserById(userId);
+        requireProfessional(user, userId);
+
+        portfolioItemRepository.deleteAll(portfolioItemRepository.findByUserId(userId));
+
+        List<PortfolioItem> saved = items.stream()
+                .map(request -> {
+                    PortfolioItem item = new PortfolioItem();
+                    item.setUser(user);
+                    item.setTitle(request.getTitle());
+                    item.setDescription(request.getDescription());
+                    item.setUrl(request.getUrl());
+                    return portfolioItemRepository.save(item);
+                })
+                .toList();
+
+        log.info("Portfolio items updated: userId={}, count={}", userId, saved.size());
+        return saved.stream().map(portfolioItemMapper::toResponse).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public ProfessionalProfileResponse getProfessionalProfile(UUID userId) {
         User user = findUserById(userId);
-
-        if (user.getRole() != UserRole.PROFESSIONAL) {
-            throw new InvalidUserOperationException(
-                    "User with id=" + userId + " is not a PROFESSIONAL.");
-        }
+        requireProfessional(user, userId);
 
         ProfessionalProfile profile = professionalProfileRepository.findByUserId(userId)
                 .orElseGet(() -> {
@@ -163,7 +228,7 @@ public class UserServiceImpl implements UserService {
                     return p;
                 });
 
-        return professionalProfileMapper.toResponse(profile);
+        return enrichWithSkillsAndPortfolio(professionalProfileMapper.toResponse(profile), userId);
     }
 
     @Override
@@ -186,6 +251,26 @@ public class UserServiceImpl implements UserService {
         profile = companyProfileRepository.save(profile);
 
         log.info("Company profile updated: userId={}", userId);
+        return companyProfileMapper.toResponse(profile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CompanyProfileResponse getCompanyProfile(UUID userId) {
+        User user = findUserById(userId);
+
+        if (user.getRole() != UserRole.COMPANY) {
+            throw new InvalidUserOperationException(
+                    "User with id=" + userId + " is not a COMPANY.");
+        }
+
+        CompanyProfile profile = companyProfileRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    CompanyProfile p = new CompanyProfile();
+                    p.setUser(user);
+                    return p;
+                });
+
         return companyProfileMapper.toResponse(profile);
     }
 
@@ -300,5 +385,22 @@ public class UserServiceImpl implements UserService {
     private User findUserById(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
+    }
+
+    private void requireProfessional(User user, UUID userId) {
+        if (user.getRole() != UserRole.PROFESSIONAL) {
+            throw new InvalidUserOperationException(
+                    "User with id=" + userId + " is not a PROFESSIONAL.");
+        }
+    }
+
+    private ProfessionalProfileResponse enrichWithSkillsAndPortfolio(ProfessionalProfileResponse response, UUID userId) {
+        response.setSkills(userSkillRepository.findByIdUserId(userId).stream()
+                .map(skillMapper::toProfessionalSkillResponse)
+                .toList());
+        response.setPortfolioItems(portfolioItemRepository.findByUserId(userId).stream()
+                .map(portfolioItemMapper::toResponse)
+                .toList());
+        return response;
     }
 }

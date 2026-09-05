@@ -2,10 +2,14 @@ package com.skillmatch.userservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillmatch.userservice.dto.request.CompanyProfileRequest;
+import com.skillmatch.userservice.dto.request.PortfolioItemRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalProfileRequest;
+import com.skillmatch.userservice.dto.request.ProfessionalSkillRequest;
 import com.skillmatch.userservice.dto.request.UserRegistrationRequest;
 import com.skillmatch.userservice.dto.response.CompanyProfileResponse;
+import com.skillmatch.userservice.dto.response.PortfolioItemResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
+import com.skillmatch.userservice.dto.response.ProfessionalSkillResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import com.skillmatch.userservice.exception.DuplicateEmailException;
 import com.skillmatch.userservice.config.TestSecurityConfig;
@@ -202,6 +206,41 @@ class UserControllerTest {
     }
 
     // =========================================================================
+    // GET /api/v1/users/{userId}/professional-profile
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/users/{userId}/professional-profile")
+    class GetProfessionalProfileSelf {
+
+        @Test
+        @DisplayName("PROFESSIONAL → 200 OK with skills and portfolio")
+        void getProfessionalProfile_success() throws Exception {
+            UUID userId = UUID.randomUUID();
+            ProfessionalProfileResponse response = new ProfessionalProfileResponse();
+            response.setUserId(userId);
+            response.setFirstName("Mario");
+            response.setSkills(List.of());
+            response.setPortfolioItems(List.of());
+
+            when(userService.getProfessionalProfile(userId)).thenReturn(response);
+
+            mockMvc.perform(get("/api/v1/users/{userId}/professional-profile", userId)
+                            .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_PROFESSIONAL"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.firstName").value("Mario"));
+        }
+
+        @Test
+        @DisplayName("COMPANY role → 403 Forbidden")
+        void getProfessionalProfile_wrongRole_forbidden() throws Exception {
+            mockMvc.perform(get("/api/v1/users/{userId}/professional-profile", UUID.randomUUID())
+                            .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_COMPANY"))))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
     // PUT /api/v1/users/{userId}/professional-profile
     // =========================================================================
 
@@ -280,6 +319,137 @@ class UserControllerTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.title").value("Invalid User Operation"));
+        }
+    }
+
+    // =========================================================================
+    // PUT /api/v1/users/{userId}/skills
+    // =========================================================================
+
+    @Nested
+    @DisplayName("PUT /api/v1/users/{userId}/skills")
+    class UpdateProfessionalSkills {
+
+        @Test
+        @DisplayName("valid request by PROFESSIONAL → 200 OK")
+        void updateSkills_success() throws Exception {
+            UUID userId = UUID.randomUUID();
+            ProfessionalSkillRequest request = new ProfessionalSkillRequest();
+            request.setSkillName("Java");
+            request.setCertificationUrl("https://cert.example.com/java");
+
+            ProfessionalSkillResponse response = new ProfessionalSkillResponse();
+            response.setSkillName("Java");
+            response.setCertificationUrl("https://cert.example.com/java");
+
+            when(userService.updateProfessionalSkills(eq(userId), any())).thenReturn(List.of(response));
+
+            mockMvc.perform(put("/api/v1/users/{userId}/skills", userId)
+                            .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_PROFESSIONAL")))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(List.of(request))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].skillName").value("Java"));
+        }
+
+        @Test
+        @DisplayName("blank skill name → 400 Bad Request")
+        void updateSkills_blankName_badRequest() throws Exception {
+            ProfessionalSkillRequest request = new ProfessionalSkillRequest();
+            request.setSkillName("");
+
+            mockMvc.perform(put("/api/v1/users/{userId}/skills", UUID.randomUUID())
+                            .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_PROFESSIONAL")))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(List.of(request))))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("COMPANY role → 403 Forbidden")
+        void updateSkills_wrongRole_forbidden() throws Exception {
+            mockMvc.perform(put("/api/v1/users/{userId}/skills", UUID.randomUUID())
+                            .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_COMPANY")))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(List.of())))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
+    // PUT /api/v1/users/{userId}/portfolio-items
+    // =========================================================================
+
+    @Nested
+    @DisplayName("PUT /api/v1/users/{userId}/portfolio-items")
+    class UpdatePortfolioItems {
+
+        @Test
+        @DisplayName("valid request by PROFESSIONAL → 200 OK")
+        void updatePortfolioItems_success() throws Exception {
+            UUID userId = UUID.randomUUID();
+            PortfolioItemRequest request = new PortfolioItemRequest();
+            request.setTitle("Sito e-commerce");
+            request.setUrl("https://example.com/portfolio/1");
+
+            PortfolioItemResponse response = new PortfolioItemResponse();
+            response.setTitle("Sito e-commerce");
+            response.setUrl("https://example.com/portfolio/1");
+
+            when(userService.updatePortfolioItems(eq(userId), any())).thenReturn(List.of(response));
+
+            mockMvc.perform(put("/api/v1/users/{userId}/portfolio-items", userId)
+                            .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_PROFESSIONAL")))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(List.of(request))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].title").value("Sito e-commerce"));
+        }
+
+        @Test
+        @DisplayName("missing title → 400 Bad Request")
+        void updatePortfolioItems_missingTitle_badRequest() throws Exception {
+            PortfolioItemRequest request = new PortfolioItemRequest();
+            request.setUrl("https://example.com");
+
+            mockMvc.perform(put("/api/v1/users/{userId}/portfolio-items", UUID.randomUUID())
+                            .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_PROFESSIONAL")))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(List.of(request))))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/v1/users/{userId}/company-profile
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/users/{userId}/company-profile")
+    class GetCompanyProfileSelf {
+
+        @Test
+        @DisplayName("COMPANY → 200 OK")
+        void getCompanyProfile_success() throws Exception {
+            UUID userId = UUID.randomUUID();
+            CompanyProfileResponse response = new CompanyProfileResponse();
+            response.setUserId(userId);
+            response.setCompanyName("ACME S.r.l.");
+
+            when(userService.getCompanyProfile(userId)).thenReturn(response);
+
+            mockMvc.perform(get("/api/v1/users/{userId}/company-profile", userId)
+                            .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_COMPANY"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.companyName").value("ACME S.r.l."));
+        }
+
+        @Test
+        @DisplayName("PROFESSIONAL role → 403 Forbidden")
+        void getCompanyProfile_wrongRole_forbidden() throws Exception {
+            mockMvc.perform(get("/api/v1/users/{userId}/company-profile", UUID.randomUUID())
+                            .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_PROFESSIONAL"))))
+                    .andExpect(status().isForbidden());
         }
     }
 
