@@ -26,6 +26,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -55,9 +57,32 @@ public class AuthController {
     })
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody SelfRegistrationRequest request) {
+        validateRegistration(request);
+
+        KeycloakProfile keycloakProfile = keycloakProfileFor(request);
+        String keycloakId = keycloakAdminClient.createUserWithRole(
+                request.getEmail(), request.getPassword(), request.getRole().name(),
+                keycloakProfile.firstName(), keycloakProfile.lastName());
+
+        UserResponse user = registerUser(request, keycloakId);
+        completeProfile(request, user.getId());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+    }
+
+    private void validateRegistration(SelfRegistrationRequest request) {
+        rejectAdminRole(request);
+        validateRoleSpecificFields(request);
+        rejectDuplicateEmail(request);
+    }
+
+    private void rejectAdminRole(SelfRegistrationRequest request) {
         if (request.getRole() == UserRole.ADMIN) {
             throw new InvalidUserOperationException("ADMIN accounts cannot be created through self-service registration.");
         }
+    }
+
+    private void validateRoleSpecificFields(SelfRegistrationRequest request) {
         if (request.getRole() == UserRole.PROFESSIONAL
                 && (isBlank(request.getFirstName()) || isBlank(request.getLastName()))) {
             throw new InvalidUserOperationException("First name and last name are required for PROFESSIONAL registration.");
@@ -65,39 +90,45 @@ public class AuthController {
         if (request.getRole() == UserRole.COMPANY && isBlank(request.getCompanyName())) {
             throw new InvalidUserOperationException("Company name is required for COMPANY registration.");
         }
+    }
+
+    private void rejectDuplicateEmail(SelfRegistrationRequest request) {
         if (userService.emailExists(request.getEmail())) {
             throw new DuplicateEmailException(request.getEmail());
         }
+    }
 
-        // Keycloak's own profile just needs non-blank names to satisfy its default
-        // VERIFY_PROFILE requirement; the real company name lives in CompanyProfile.
-        String keycloakFirstName = request.getRole() == UserRole.PROFESSIONAL
-                ? request.getFirstName() : request.getCompanyName();
-        String keycloakLastName = request.getRole() == UserRole.PROFESSIONAL
-                ? request.getLastName() : "Azienda";
+    // Keycloak's own profile just needs non-blank names to satisfy its default
+    // VERIFY_PROFILE requirement; the real company name lives in CompanyProfile.
+    private record KeycloakProfile(String firstName, String lastName) {
+    }
 
-        String keycloakId = keycloakAdminClient.createUserWithRole(
-                request.getEmail(), request.getPassword(), request.getRole().name(),
-                keycloakFirstName, keycloakLastName);
+    private KeycloakProfile keycloakProfileFor(SelfRegistrationRequest request) {
+        if (request.getRole() == UserRole.PROFESSIONAL) {
+            return new KeycloakProfile(request.getFirstName(), request.getLastName());
+        }
+        return new KeycloakProfile(request.getCompanyName(), "Azienda");
+    }
 
+    private UserResponse registerUser(SelfRegistrationRequest request, String keycloakId) {
         UserRegistrationRequest registrationRequest = new UserRegistrationRequest();
         registrationRequest.setKeycloakId(keycloakId);
         registrationRequest.setEmail(request.getEmail());
         registrationRequest.setRole(request.getRole());
-        UserResponse user = userService.registerUser(registrationRequest);
+        return userService.registerUser(registrationRequest);
+    }
 
+    private void completeProfile(SelfRegistrationRequest request, UUID userId) {
         if (request.getRole() == UserRole.PROFESSIONAL) {
             ProfessionalProfileRequest profileRequest = new ProfessionalProfileRequest();
             profileRequest.setFirstName(request.getFirstName());
             profileRequest.setLastName(request.getLastName());
-            userService.updateProfessionalProfile(user.getId(), profileRequest);
+            userService.updateProfessionalProfile(userId, profileRequest);
         } else {
             CompanyProfileRequest profileRequest = new CompanyProfileRequest();
             profileRequest.setCompanyName(request.getCompanyName());
-            userService.updateCompanyProfile(user.getId(), profileRequest);
+            userService.updateCompanyProfile(userId, profileRequest);
         }
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
 
     private boolean isBlank(String value) {

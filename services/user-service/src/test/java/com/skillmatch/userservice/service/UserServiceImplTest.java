@@ -194,6 +194,25 @@ class UserServiceImplTest {
     }
 
     // =========================================================================
+    // emailExists
+    // =========================================================================
+
+    @Nested
+    @DisplayName("emailExists()")
+    class EmailExists {
+
+        @Test
+        @DisplayName("delegates to the repository")
+        void emailExists_delegatesToRepository() {
+            when(userRepository.existsByEmail("pro@example.com")).thenReturn(true);
+            when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+
+            assertThat(userService.emailExists("pro@example.com")).isTrue();
+            assertThat(userService.emailExists("new@example.com")).isFalse();
+        }
+    }
+
+    // =========================================================================
     // getUserProfile
     // =========================================================================
 
