@@ -48,7 +48,10 @@ export function AuthProvider({ children }) {
     roles,
     hasRole: (role) => roles.includes(role),
     username: keycloak.tokenParsed?.preferred_username,
-    logout: () => keycloak.logout({ redirectUri: window.location.origin }),
+    // Trailing slash required: Keycloak's redirect URI wildcard match (".../*")
+    // only matches paths under that prefix, and window.location.origin never
+    // has a trailing slash on its own.
+    logout: () => keycloak.logout({ redirectUri: window.location.origin + '/' }),
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
