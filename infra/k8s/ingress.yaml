@@ -1,37 +1,48 @@
 # Exposes the frontend, API Gateway and Keycloak on the Oracle VM's public IP
 # via nip.io (no real domain needed — <anything>.<IP>.nip.io resolves to <IP>).
-# Uses Traefik, which K3s installs by default (IngressClass "traefik") — no
-# separate Ingress Controller to install.
+# Uses Traefik, which K3s installs by default (IngressClass "traefik").
 #
-# HTTP only for now, no TLS/cert-manager: getting the app reachable end to end
-# was the priority given the deadline. To add HTTPS later, install cert-manager,
-# uncomment the ClusterIssuer below, and add a `tls:` block per host:
-#   helm upgrade --install cert-manager cert-manager \
-#     --repo https://charts.jetstack.io --namespace cert-manager --create-namespace --set installCRDs=true
+# HTTPS via cert-manager + Let's Encrypt is required, not optional: the
+# Authorization Code + PKCE flow needs the browser's Web Crypto API (for the
+# SHA-256 code_challenge), which browsers only expose in a secure context
+# (HTTPS, or localhost) — login silently fails on a plain-HTTP public host.
 #
-# ---
-# apiVersion: cert-manager.io/v1
-# kind: ClusterIssuer
-# metadata:
-#   name: letsencrypt-prod
-# spec:
-#   acme:
-#     server: https://acme-v02.api.letsencrypt.org/directory
-#     email: YOUR_EMAIL@example.com
-#     privateKeySecretRef:
-#       name: letsencrypt-prod-account-key
-#     solvers:
-#       - http01:
-#           ingress:
-#             ingressClassName: traefik
+# Install cert-manager first if it isn't already (no Helm needed):
+#   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.3/cert-manager.yaml
+#   kubectl wait --for=condition=Available --timeout=180s deployment --all -n cert-manager
 
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: aura.andrioli@gmail.com
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik
+
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: skillmatch-ingress
   namespace: skillmatch
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+        - 92.4.167.195.nip.io
+      secretName: skillmatch-app-tls
+    - hosts:
+        - keycloak.92.4.167.195.nip.io
+      secretName: skillmatch-keycloak-tls
   rules:
     - host: 92.4.167.195.nip.io
       http:

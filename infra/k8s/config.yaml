@@ -12,7 +12,7 @@ metadata:
   name: skillmatch-config
   namespace: skillmatch
 data:
-  keycloak-issuer-uri: "http://keycloak.92.4.167.195.nip.io/realms/skillmatch"
+  keycloak-issuer-uri: "https://keycloak.92.4.167.195.nip.io/realms/skillmatch"
   keycloak-jwk-uri: "http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs"
   rabbitmq-host: "rabbitmq"
   mongo-host: "mongodb"

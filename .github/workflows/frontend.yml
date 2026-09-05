@@ -73,10 +73,10 @@ jobs:
           platforms: linux/arm64
           push: true
           build-args: |
-            VITE_KEYCLOAK_URL=http://keycloak.92.4.167.195.nip.io
+            VITE_KEYCLOAK_URL=https://keycloak.92.4.167.195.nip.io
             VITE_KEYCLOAK_REALM=skillmatch
             VITE_KEYCLOAK_CLIENT_ID=skillmatch-web
-            VITE_API_BASE_URL=http://92.4.167.195.nip.io/api/v1
+            VITE_API_BASE_URL=https://92.4.167.195.nip.io/api/v1
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

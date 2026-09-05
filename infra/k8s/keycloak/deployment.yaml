@@ -40,11 +40,11 @@ spec:
                 secretKeyRef:
                   name: db-credentials
                   key: password
-            # Full URL (with scheme) so Keycloak doesn't have to guess it — we're
-            # HTTP-only for now (see infra/k8s/ingress.yaml), switch to https://
-            # once TLS/cert-manager is added.
+            # Full URL (with scheme) so Keycloak doesn't have to guess it.
+            # TLS terminates at the Traefik Ingress (infra/k8s/ingress.yaml),
+            # not here — Keycloak itself still listens on plain HTTP internally.
             - name: KC_HOSTNAME
-              value: http://keycloak.92.4.167.195.nip.io
+              value: https://keycloak.92.4.167.195.nip.io
             - name: KEYCLOAK_ADMIN
               valueFrom:
                 secretKeyRef:
