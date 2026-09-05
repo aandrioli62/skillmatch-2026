@@ -17,6 +17,13 @@ spec:
       labels:
         app: api-gateway
     spec:
+      # Kubernetes injects legacy Docker-links env vars for every Service in the
+      # namespace (e.g. PROJECT_SERVICE_PORT=tcp://<clusterIP>:8082). Those names
+      # collide with the ${..._HOST}/${..._PORT} placeholders in application.yml,
+      # silently overriding the intended default port with a malformed value.
+      # This gateway resolves downstream services via k8s DNS names, so it
+      # doesn't need service-links injection at all.
+      enableServiceLinks: false
       containers:
         - name: api-gateway
           image: ghcr.io/aandrioli62/skillmatch/api-gateway:latest

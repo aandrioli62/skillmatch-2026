@@ -415,8 +415,8 @@
       "id" : "c395c77e-1c92-412a-b0a1-1e3080269882",
       "type" : "password",
       "userLabel" : "My password",
-      "createdDate" : 1781857835026,
-      "secretData" : "{\"value\":\"a/3ChdnhbYgQY5a7wM33dT9+aT6ZWWLGrHDwIICNnR0=\",\"salt\":\"VyvcvcwopLTjnN9peHQPeg==\",\"additionalParameters\":{}}",
+      "createdDate" : 1788615124439,
+      "secretData" : "{\"value\":\"4c+nTDmzDrjw9zkOs6JleNxcQ2ku9P7UOlkELNGDFFY=\",\"salt\":\"V0E2+R3pjFqrrcjl8r1dGw==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
     } ],
     "disableableCredentialTypes" : [ ],
@@ -438,8 +438,8 @@
       "id" : "f29269a3-a130-4fe9-8c77-f0b0de4c8df3",
       "type" : "password",
       "userLabel" : "My password",
-      "createdDate" : 1781857736258,
-      "secretData" : "{\"value\":\"jOHwYjopWzQENyJlG6czIbB4kLuTf2tULjFCz97ueRQ=\",\"salt\":\"hPJzmjiveTwjJWr1qUeXiQ==\",\"additionalParameters\":{}}",
+      "createdDate" : 1788615124052,
+      "secretData" : "{\"value\":\"6G0j/jmh6MYuiLpw7SS1YMTRGmabSJEpd/sbEApNX+Y=\",\"salt\":\"to+oYktaVoiXcQtW92Qqew==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
     } ],
     "disableableCredentialTypes" : [ ],
@@ -461,8 +461,8 @@
       "id" : "95897d5d-c89e-4308-819c-5815f47708c1",
       "type" : "password",
       "userLabel" : "My password",
-      "createdDate" : 1781857518421,
-      "secretData" : "{\"value\":\"HHBb3dAnbQ2fGS+rVC8exZrFZRG5ARwC82J7di977Bk=\",\"salt\":\"+cIiwk0H0aGl8nU6X3yUzw==\",\"additionalParameters\":{}}",
+      "createdDate" : 1788615123847,
+      "secretData" : "{\"value\":\"mP2U9fVPMzBE5kPJ4/vdY8J+1P4x1Wps/m2cGjKnyOg=\",\"salt\":\"9X+jFa90Sv3m7bQhu5bdug==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
     } ],
     "disableableCredentialTypes" : [ ],
