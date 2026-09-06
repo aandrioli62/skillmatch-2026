@@ -4,9 +4,11 @@ import com.skillmatch.paymentservice.client.UserServiceClient;
 import com.skillmatch.paymentservice.config.TestSecurityConfig;
 import com.skillmatch.paymentservice.dto.response.InvoiceResponse;
 import com.skillmatch.paymentservice.dto.response.TransactionResponse;
+import com.skillmatch.paymentservice.dto.response.TransactionSummaryResponse;
 import com.skillmatch.paymentservice.exception.GlobalExceptionHandler;
 import com.skillmatch.paymentservice.exception.InvoiceNotFoundException;
 import com.skillmatch.paymentservice.exception.TransactionNotFoundException;
+import com.skillmatch.paymentservice.model.enums.TransactionStatus;
 import com.skillmatch.paymentservice.service.PaymentService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,10 +24,12 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -116,9 +120,33 @@ class TransactionControllerTest {
         @DisplayName("ADMIN role → 200 OK")
         void listAllTransactions_admin_ok() throws Exception {
             Page<TransactionResponse> page = new PageImpl<>(List.of(new TransactionResponse()), PageRequest.of(0, 20), 1);
-            when(paymentService.listAllTransactions(org.mockito.ArgumentMatchers.any())).thenReturn(page);
+            when(paymentService.listAllTransactions(
+                    org.mockito.ArgumentMatchers.any(),
+                    org.mockito.ArgumentMatchers.any(),
+                    org.mockito.ArgumentMatchers.any(),
+                    org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(page);
 
             mockMvc.perform(get("/api/v1/transactions/admin/all")
+                            .with(jwt().authorities(ROLE_ADMIN)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("with status/from/to filters → 200 OK")
+        void listAllTransactions_withFilters_ok() throws Exception {
+            Page<TransactionResponse> page = new PageImpl<>(List.of(), PageRequest.of(0, 20), 0);
+            when(paymentService.listAllTransactions(
+                    eq(TransactionStatus.COMPLETED),
+                    eq(LocalDateTime.parse("2026-01-01T00:00:00")),
+                    eq(LocalDateTime.parse("2026-01-31T23:59:59")),
+                    org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(page);
+
+            mockMvc.perform(get("/api/v1/transactions/admin/all")
+                            .param("status", "COMPLETED")
+                            .param("from", "2026-01-01T00:00:00")
+                            .param("to", "2026-01-31T23:59:59")
                             .with(jwt().authorities(ROLE_ADMIN)))
                     .andExpect(status().isOk());
         }
@@ -128,6 +156,33 @@ class TransactionControllerTest {
         void listAllTransactions_nonAdmin_forbidden() throws Exception {
             mockMvc.perform(get("/api/v1/transactions/admin/all")
                             .with(jwt().authorities(ROLE_COMPANY)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/transactions/admin/summary")
+    class GetTransactionSummary {
+
+        @Test
+        @DisplayName("ADMIN role → 200 OK")
+        void getTransactionSummary_admin_ok() throws Exception {
+            when(paymentService.getTransactionSummary(
+                    org.mockito.ArgumentMatchers.any(),
+                    org.mockito.ArgumentMatchers.any(),
+                    org.mockito.ArgumentMatchers.any()))
+                    .thenReturn(new TransactionSummaryResponse());
+
+            mockMvc.perform(get("/api/v1/transactions/admin/summary")
+                            .with(jwt().authorities(ROLE_ADMIN)))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("non-ADMIN role → 403 Forbidden")
+        void getTransactionSummary_nonAdmin_forbidden() throws Exception {
+            mockMvc.perform(get("/api/v1/transactions/admin/summary")
+                            .with(jwt().authorities(ROLE_PROFESSIONAL)))
                     .andExpect(status().isForbidden());
         }
     }

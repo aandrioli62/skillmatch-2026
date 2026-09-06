@@ -3,6 +3,8 @@ package com.skillmatch.paymentservice.controller;
 import com.skillmatch.paymentservice.client.UserServiceClient;
 import com.skillmatch.paymentservice.dto.response.InvoiceResponse;
 import com.skillmatch.paymentservice.dto.response.TransactionResponse;
+import com.skillmatch.paymentservice.dto.response.TransactionSummaryResponse;
+import com.skillmatch.paymentservice.model.enums.TransactionStatus;
 import com.skillmatch.paymentservice.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,8 +28,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -114,13 +119,37 @@ public class TransactionController {
 
     @Operation(
             summary = "List all transactions (admin)",
-            description = "Returns a paginated list of all transactions platform-wide, for oversight."
+            description = "Returns a paginated list of all transactions platform-wide, for oversight. "
+                    + "status/from/to are optional filters; from/to bound the creation date (inclusive)."
     )
     @GetMapping("/admin/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Page<TransactionResponse>> listAllTransactions(
+            @Parameter(description = "Filter by transaction status")
+            @RequestParam(required = false) TransactionStatus status,
+            @Parameter(description = "Only transactions created on or after this instant")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Only transactions created on or before this instant")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
             Pageable pageable) {
-        return ResponseEntity.ok(paymentService.listAllTransactions(pageable));
+        return ResponseEntity.ok(paymentService.listAllTransactions(status, from, to, pageable));
+    }
+
+    @Operation(
+            summary = "Transaction totals (admin)",
+            description = "Aggregate totals (volume, commission, net, count) for the same optional status/from/to "
+                    + "filters as the list endpoint — the platform's earnings for the selected slice."
+    )
+    @GetMapping("/admin/summary")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<TransactionSummaryResponse> getTransactionSummary(
+            @Parameter(description = "Filter by transaction status")
+            @RequestParam(required = false) TransactionStatus status,
+            @Parameter(description = "Only transactions created on or after this instant")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @Parameter(description = "Only transactions created on or before this instant")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        return ResponseEntity.ok(paymentService.getTransactionSummary(status, from, to));
     }
 }

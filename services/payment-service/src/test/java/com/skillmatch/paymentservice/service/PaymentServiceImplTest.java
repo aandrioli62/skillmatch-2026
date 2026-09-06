@@ -310,12 +310,31 @@ class PaymentServiceImplTest {
             org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 20);
             org.springframework.data.domain.Page<Transaction> page =
                     new org.springframework.data.domain.PageImpl<>(List.of(transaction), pageable, 1);
-            when(transactionRepository.findAll(pageable)).thenReturn(page);
+            when(transactionRepository.findWithFilters(null, null, null, pageable)).thenReturn(page);
             when(paymentMapper.toResponse(transaction)).thenReturn(new TransactionResponse());
 
-            var result = paymentService.listAllTransactions(pageable);
+            var result = paymentService.listAllTransactions(null, null, null, pageable);
 
             assertThat(result.getTotalElements()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("getTransactionSummary: maps the aggregate projection")
+        void getTransactionSummary_returnsMapped() {
+            com.skillmatch.paymentservice.repository.TransactionSummaryProjection projection =
+                    org.mockito.Mockito.mock(com.skillmatch.paymentservice.repository.TransactionSummaryProjection.class);
+            when(projection.getTotalVolume()).thenReturn(java.math.BigDecimal.valueOf(1000));
+            when(projection.getTotalCommission()).thenReturn(java.math.BigDecimal.valueOf(80));
+            when(projection.getTotalNet()).thenReturn(java.math.BigDecimal.valueOf(920));
+            when(projection.getCount()).thenReturn(5L);
+            when(transactionRepository.summarize(null, null, null)).thenReturn(projection);
+
+            var result = paymentService.getTransactionSummary(null, null, null);
+
+            assertThat(result.getTotalVolume()).isEqualByComparingTo("1000");
+            assertThat(result.getTotalCommission()).isEqualByComparingTo("80");
+            assertThat(result.getTotalNet()).isEqualByComparingTo("920");
+            assertThat(result.getCount()).isEqualTo(5L);
         }
 
         @Test

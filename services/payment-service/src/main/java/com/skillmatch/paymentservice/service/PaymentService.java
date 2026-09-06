@@ -4,9 +4,12 @@ import com.skillmatch.paymentservice.dto.request.CommissionConfigRequest;
 import com.skillmatch.paymentservice.dto.response.CommissionConfigResponse;
 import com.skillmatch.paymentservice.dto.response.InvoiceResponse;
 import com.skillmatch.paymentservice.dto.response.TransactionResponse;
+import com.skillmatch.paymentservice.dto.response.TransactionSummaryResponse;
+import com.skillmatch.paymentservice.model.enums.TransactionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,9 +48,16 @@ public interface PaymentService {
 
     /**
      * Admin: returns a paginated list of all transactions platform-wide, ordered by
-     * creation date descending.
+     * creation date descending. Each filter is optional (null = no restriction on it).
      */
-    Page<TransactionResponse> listAllTransactions(Pageable pageable);
+    Page<TransactionResponse> listAllTransactions(
+            TransactionStatus status, LocalDateTime from, LocalDateTime to, Pageable pageable);
+
+    /**
+     * Admin: aggregate totals (volume, commission, net, count) for the same optional
+     * filters as {@link #listAllTransactions} — the "earnings" half of transaction oversight.
+     */
+    TransactionSummaryResponse getTransactionSummary(TransactionStatus status, LocalDateTime from, LocalDateTime to);
 
     /**
      * Returns the invoice generated for a transaction. Only a party to the underlying

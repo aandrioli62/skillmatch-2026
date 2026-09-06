@@ -6,6 +6,7 @@ import com.skillmatch.paymentservice.dto.request.CommissionConfigRequest;
 import com.skillmatch.paymentservice.dto.response.CommissionConfigResponse;
 import com.skillmatch.paymentservice.dto.response.InvoiceResponse;
 import com.skillmatch.paymentservice.dto.response.TransactionResponse;
+import com.skillmatch.paymentservice.dto.response.TransactionSummaryResponse;
 import com.skillmatch.paymentservice.event.PaymentCompletedEvent;
 import com.skillmatch.paymentservice.exception.InvalidPaymentOperationException;
 import com.skillmatch.paymentservice.exception.InvoiceNotFoundException;
@@ -18,6 +19,7 @@ import com.skillmatch.paymentservice.model.enums.TransactionStatus;
 import com.skillmatch.paymentservice.repository.CommissionConfigRepository;
 import com.skillmatch.paymentservice.repository.InvoiceRepository;
 import com.skillmatch.paymentservice.repository.TransactionRepository;
+import com.skillmatch.paymentservice.repository.TransactionSummaryProjection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -150,8 +152,22 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<TransactionResponse> listAllTransactions(Pageable pageable) {
-        return transactionRepository.findAll(pageable).map(paymentMapper::toResponse);
+    public Page<TransactionResponse> listAllTransactions(
+            TransactionStatus status, LocalDateTime from, LocalDateTime to, Pageable pageable) {
+        return transactionRepository.findWithFilters(status, from, to, pageable)
+                .map(paymentMapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TransactionSummaryResponse getTransactionSummary(TransactionStatus status, LocalDateTime from, LocalDateTime to) {
+        TransactionSummaryProjection summary = transactionRepository.summarize(status, from, to);
+        TransactionSummaryResponse response = new TransactionSummaryResponse();
+        response.setTotalVolume(summary.getTotalVolume());
+        response.setTotalCommission(summary.getTotalCommission());
+        response.setTotalNet(summary.getTotalNet());
+        response.setCount(summary.getCount());
+        return response;
     }
 
     @Override
