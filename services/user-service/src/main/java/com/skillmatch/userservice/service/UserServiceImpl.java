@@ -4,16 +4,19 @@ import com.skillmatch.userservice.dto.request.CompanyProfileRequest;
 import com.skillmatch.userservice.dto.request.PortfolioItemRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalProfileRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalSkillRequest;
+import com.skillmatch.userservice.dto.request.ReportRequest;
 import com.skillmatch.userservice.dto.request.UserRegistrationRequest;
 import com.skillmatch.userservice.dto.response.CompanyProfileResponse;
 import com.skillmatch.userservice.dto.response.PortfolioItemResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalSkillResponse;
+import com.skillmatch.userservice.dto.response.ReportResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import com.skillmatch.userservice.event.UserRegisteredEvent;
 import com.skillmatch.userservice.event.UserValidatedEvent;
 import com.skillmatch.userservice.exception.DuplicateEmailException;
 import com.skillmatch.userservice.exception.InvalidUserOperationException;
+import com.skillmatch.userservice.exception.ReportNotFoundException;
 import com.skillmatch.userservice.exception.UserNotFoundException;
 import com.skillmatch.userservice.mapper.CompanyProfileMapper;
 import com.skillmatch.userservice.mapper.PortfolioItemMapper;
@@ -23,16 +26,19 @@ import com.skillmatch.userservice.mapper.UserMapper;
 import com.skillmatch.userservice.model.CompanyProfile;
 import com.skillmatch.userservice.model.PortfolioItem;
 import com.skillmatch.userservice.model.ProfessionalProfile;
+import com.skillmatch.userservice.model.Report;
 import com.skillmatch.userservice.model.Skill;
 import com.skillmatch.userservice.model.User;
 import com.skillmatch.userservice.model.UserSkill;
 import com.skillmatch.userservice.model.UserSkillId;
+import com.skillmatch.userservice.model.enums.ReportStatus;
 import com.skillmatch.userservice.model.enums.ReputationLevel;
 import com.skillmatch.userservice.model.enums.UserRole;
 import com.skillmatch.userservice.model.enums.UserStatus;
 import com.skillmatch.userservice.repository.CompanyProfileRepository;
 import com.skillmatch.userservice.repository.PortfolioItemRepository;
 import com.skillmatch.userservice.repository.ProfessionalProfileRepository;
+import com.skillmatch.userservice.repository.ReportRepository;
 import com.skillmatch.userservice.repository.SkillRepository;
 import com.skillmatch.userservice.repository.UserRepository;
 import com.skillmatch.userservice.repository.UserSkillRepository;
@@ -71,6 +77,7 @@ public class UserServiceImpl implements UserService {
     private final SkillRepository               skillRepository;
     private final UserSkillRepository           userSkillRepository;
     private final PortfolioItemRepository       portfolioItemRepository;
+    private final ReportRepository              reportRepository;
     private final EventPublisherService         eventPublisher;
     private final UserMapper                    userMapper;
     private final ProfessionalProfileMapper     professionalProfileMapper;
@@ -357,7 +364,67 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Page<UserResponse> listUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).map(userMapper::toResponse);
+        return userRepository.findAll(pageable).map(user -> {
+            UserResponse response = userMapper.toResponse(user);
+            long openReports = reportRepository.countByReportedUserIdAndStatus(user.getId(), ReportStatus.OPEN);
+            response.setOpenReportCount((int) openReports);
+            return response;
+        });
+    }
+
+    // =========================================================================
+    // Reports
+    // =========================================================================
+
+    @Override
+    public ReportResponse createReport(String reporterKeycloakId, ReportRequest request) {
+        User reporter = userRepository.findByKeycloakId(reporterKeycloakId)
+                .orElseThrow(() -> new UserNotFoundException("No user found for keycloakId: " + reporterKeycloakId));
+        User reportedUser = findUserById(request.getReportedUserId());
+
+        if (reporter.getId().equals(reportedUser.getId())) {
+            throw new InvalidUserOperationException("You cannot report yourself.");
+        }
+
+        Report report = new Report();
+        report.setReporter(reporter);
+        report.setReportedUser(reportedUser);
+        report.setReason(request.getReason());
+        report = reportRepository.save(report);
+
+        log.info("Report filed: reporterId={}, reportedUserId={}", reporter.getId(), reportedUser.getId());
+        return toReportResponse(report);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReportResponse> listReportsForUser(UUID userId) {
+        return reportRepository.findByReportedUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(this::toReportResponse)
+                .toList();
+    }
+
+    @Override
+    public void closeReport(UUID reportId) {
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new ReportNotFoundException(reportId));
+        report.setStatus(ReportStatus.CLOSED);
+        reportRepository.save(report);
+
+        log.info("Report closed: reportId={}", reportId);
+    }
+
+    private ReportResponse toReportResponse(Report report) {
+        ReportResponse response = new ReportResponse();
+        response.setId(report.getId());
+        response.setReporterId(report.getReporter().getId());
+        response.setReporterEmail(report.getReporter().getEmail());
+        response.setReportedUserId(report.getReportedUser().getId());
+        response.setReason(report.getReason());
+        response.setStatus(report.getStatus());
+        response.setCreatedAt(report.getCreatedAt());
+        return response;
     }
 
     // =========================================================================

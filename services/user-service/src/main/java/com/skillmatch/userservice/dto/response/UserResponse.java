@@ -19,4 +19,5 @@ public class UserResponse {
     private UserStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Integer openReportCount;
 }

@@ -49,6 +49,16 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(ReportNotFoundException.class)
+    public ProblemDetail handleReportNotFound(ReportNotFoundException ex) {
+        log.warn("Report not found: {}", ex.getMessage());
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setType(URI.create(PROBLEM_BASE_URI + "report-not-found"));
+        problem.setTitle("Report Not Found");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
     @ExceptionHandler(DuplicateEmailException.class)
     public ProblemDetail handleDuplicateEmail(DuplicateEmailException ex) {
         log.warn("Duplicate email: {}", ex.getMessage());

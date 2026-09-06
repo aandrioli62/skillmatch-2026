@@ -4,16 +4,19 @@ import com.skillmatch.userservice.dto.request.CompanyProfileRequest;
 import com.skillmatch.userservice.dto.request.PortfolioItemRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalProfileRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalSkillRequest;
+import com.skillmatch.userservice.dto.request.ReportRequest;
 import com.skillmatch.userservice.dto.request.UserRegistrationRequest;
 import com.skillmatch.userservice.dto.response.CompanyProfileResponse;
 import com.skillmatch.userservice.dto.response.PortfolioItemResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalSkillResponse;
+import com.skillmatch.userservice.dto.response.ReportResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import com.skillmatch.userservice.event.UserRegisteredEvent;
 import com.skillmatch.userservice.event.UserValidatedEvent;
 import com.skillmatch.userservice.exception.DuplicateEmailException;
 import com.skillmatch.userservice.exception.InvalidUserOperationException;
+import com.skillmatch.userservice.exception.ReportNotFoundException;
 import com.skillmatch.userservice.exception.UserNotFoundException;
 import com.skillmatch.userservice.mapper.CompanyProfileMapper;
 import com.skillmatch.userservice.mapper.PortfolioItemMapper;
@@ -23,15 +26,18 @@ import com.skillmatch.userservice.mapper.UserMapper;
 import com.skillmatch.userservice.model.CompanyProfile;
 import com.skillmatch.userservice.model.PortfolioItem;
 import com.skillmatch.userservice.model.ProfessionalProfile;
+import com.skillmatch.userservice.model.Report;
 import com.skillmatch.userservice.model.Skill;
 import com.skillmatch.userservice.model.User;
 import com.skillmatch.userservice.model.UserSkill;
+import com.skillmatch.userservice.model.enums.ReportStatus;
 import com.skillmatch.userservice.model.enums.ReputationLevel;
 import com.skillmatch.userservice.model.enums.UserRole;
 import com.skillmatch.userservice.model.enums.UserStatus;
 import com.skillmatch.userservice.repository.CompanyProfileRepository;
 import com.skillmatch.userservice.repository.PortfolioItemRepository;
 import com.skillmatch.userservice.repository.ProfessionalProfileRepository;
+import com.skillmatch.userservice.repository.ReportRepository;
 import com.skillmatch.userservice.repository.SkillRepository;
 import com.skillmatch.userservice.repository.UserRepository;
 import com.skillmatch.userservice.repository.UserSkillRepository;
@@ -77,6 +83,8 @@ class UserServiceImplTest {
     private UserSkillRepository userSkillRepository;
     @Mock
     private PortfolioItemRepository portfolioItemRepository;
+    @Mock
+    private ReportRepository reportRepository;
     @Mock
     private EventPublisherService eventPublisher;
     @Mock
@@ -791,6 +799,121 @@ class UserServiceImplTest {
 
             assertThat(result.getTotalElements()).isEqualTo(1);
             assertThat(result.getContent()).containsExactly(userResponse);
+        }
+    }
+
+    // =========================================================================
+    // createReport / listReportsForUser / closeReport
+    // =========================================================================
+
+    @Nested
+    @DisplayName("createReport()")
+    class CreateReport {
+
+        @Test
+        @DisplayName("valid report: saved as OPEN and mapped to response")
+        void createReport_success() {
+            User reportedUser = new User();
+            reportedUser.setId(UUID.randomUUID());
+            reportedUser.setEmail("company@example.com");
+
+            ReportRequest request = new ReportRequest();
+            request.setReportedUserId(reportedUser.getId());
+            request.setReason("No-show alla scadenza.");
+
+            when(userRepository.findByKeycloakId("kc-pro-001")).thenReturn(Optional.of(professionalUser));
+            when(userRepository.findById(reportedUser.getId())).thenReturn(Optional.of(reportedUser));
+            when(reportRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            ReportResponse result = userService.createReport("kc-pro-001", request);
+
+            assertThat(result.getReporterEmail()).isEqualTo("pro@example.com");
+            assertThat(result.getReportedUserId()).isEqualTo(reportedUser.getId());
+            assertThat(result.getStatus()).isEqualTo(ReportStatus.OPEN);
+        }
+
+        @Test
+        @DisplayName("reporting yourself: throws InvalidUserOperationException")
+        void createReport_self_throws() {
+            ReportRequest request = new ReportRequest();
+            request.setReportedUserId(userId);
+            request.setReason("x");
+
+            when(userRepository.findByKeycloakId("kc-pro-001")).thenReturn(Optional.of(professionalUser));
+            when(userRepository.findById(userId)).thenReturn(Optional.of(professionalUser));
+
+            assertThatThrownBy(() -> userService.createReport("kc-pro-001", request))
+                    .isInstanceOf(InvalidUserOperationException.class);
+            verify(reportRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("reporter not found: throws UserNotFoundException")
+        void createReport_reporterNotFound_throws() {
+            when(userRepository.findByKeycloakId("kc-unknown")).thenReturn(Optional.empty());
+
+            ReportRequest request = new ReportRequest();
+            request.setReportedUserId(UUID.randomUUID());
+            request.setReason("x");
+
+            assertThatThrownBy(() -> userService.createReport("kc-unknown", request))
+                    .isInstanceOf(UserNotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("listReportsForUser()")
+    class ListReportsForUser {
+
+        @Test
+        @DisplayName("returns reports mapped, most recent first")
+        void listReportsForUser_returnsMapped() {
+            Report report = new Report();
+            report.setId(UUID.randomUUID());
+            report.setReporter(companyUser);
+            report.setReportedUser(professionalUser);
+            report.setReason("x");
+            report.setStatus(ReportStatus.OPEN);
+
+            when(reportRepository.findByReportedUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of(report));
+
+            List<ReportResponse> result = userService.listReportsForUser(userId);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).getReporterEmail()).isEqualTo("company@example.com");
+        }
+    }
+
+    @Nested
+    @DisplayName("closeReport()")
+    class CloseReport {
+
+        @Test
+        @DisplayName("existing report: transitions to CLOSED")
+        void closeReport_success() {
+            Report report = new Report();
+            UUID reportId = UUID.randomUUID();
+            report.setId(reportId);
+            report.setReporter(companyUser);
+            report.setReportedUser(professionalUser);
+            report.setStatus(ReportStatus.OPEN);
+
+            when(reportRepository.findById(reportId)).thenReturn(Optional.of(report));
+
+            userService.closeReport(reportId);
+
+            assertThat(report.getStatus()).isEqualTo(ReportStatus.CLOSED);
+            verify(reportRepository).save(report);
+        }
+
+        @Test
+        @DisplayName("report not found: throws ReportNotFoundException")
+        void closeReport_notFound_throws() {
+            UUID reportId = UUID.randomUUID();
+            when(reportRepository.findById(reportId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> userService.closeReport(reportId))
+                    .isInstanceOf(ReportNotFoundException.class);
         }
     }
 

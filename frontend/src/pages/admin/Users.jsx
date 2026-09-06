@@ -1,3 +1,4 @@
+import FlagIcon from '@mui/icons-material/Flag'
 import {
   Box,
   Button,
@@ -33,6 +34,7 @@ export default function AdminUsers() {
   const [profileNames, setProfileNames] = useState({})
 
   const [suspendTarget, setSuspendTarget] = useState(null)
+  const [validateTarget, setValidateTarget] = useState(null)
   const [detailTarget, setDetailTarget] = useState(null)
   const [message, setMessage] = useState(null)
 
@@ -58,11 +60,12 @@ export default function AdminUsers() {
 
   useEffect(loadUsers, [page])
 
-  const validateUser = (user) => {
+  const confirmValidate = () => {
     api
-      .post(`/admin/users/${user.id}/validate`)
+      .post(`/admin/users/${validateTarget.id}/validate`)
       .then(() => {
         setMessage('Professionista validato.')
+        setValidateTarget(null)
         loadUsers()
       })
       .catch((err) => setMessage(err.response?.data?.detail || err.message))
@@ -104,6 +107,14 @@ export default function AdminUsers() {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {profileNames[user.id] || user.email}
                     <Chip label={user.role} size="small" variant="outlined" />
+                    {user.openReportCount > 0 && (
+                      <Chip
+                        icon={<FlagIcon />}
+                        label={`${user.openReportCount} segnalazion${user.openReportCount === 1 ? 'e' : 'i'}`}
+                        color="error"
+                        size="small"
+                      />
+                    )}
                   </Box>
                 }
                 secondary={user.email}
@@ -115,7 +126,7 @@ export default function AdminUsers() {
                     variant="contained"
                     onClick={(e) => {
                       e.stopPropagation()
-                      validateUser(user)
+                      setValidateTarget(user)
                     }}
                   >
                     Valida
@@ -134,7 +145,11 @@ export default function AdminUsers() {
                     Sospendi
                   </Button>
                 )}
-                <Chip label={user.status} color={STATUS_COLOR[user.status] ?? 'default'} size="small" />
+                {/* PENDING has no meaning for COMPANY accounts — only PROFESSIONAL
+                    registrations go through admin validation. */}
+                {!(user.role === 'COMPANY' && user.status === 'PENDING') && (
+                  <Chip label={user.status} color={STATUS_COLOR[user.status] ?? 'default'} size="small" />
+                )}
               </Stack>
             </ListItem>
           ))}
@@ -150,6 +165,21 @@ export default function AdminUsers() {
           />
         </Box>
       )}
+
+      <Dialog open={Boolean(validateTarget)} onClose={() => setValidateTarget(null)}>
+        <DialogTitle>Validare il professionista?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            "{validateTarget?.email}" potrà candidarsi ai progetti pubblicati.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setValidateTarget(null)}>Annulla</Button>
+          <Button variant="contained" onClick={confirmValidate}>
+            Valida
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={Boolean(suspendTarget)} onClose={() => setSuspendTarget(null)}>
         <DialogTitle>Sospendere l'utente?</DialogTitle>
@@ -169,8 +199,17 @@ export default function AdminUsers() {
       <UserDetailDialog
         key={detailTarget?.id ?? 'none'}
         user={detailTarget}
-        onClose={() => setDetailTarget(null)}
-        onValidate={validateUser}
+        onClose={() => {
+          setDetailTarget(null)
+          // Archiving a report inside the dialog doesn't update this list's
+          // own copy of openReportCount — refresh on close so the badge
+          // reflects it without waiting for a manual page reload.
+          loadUsers()
+        }}
+        onValidate={(user) => {
+          setDetailTarget(null)
+          setValidateTarget(user)
+        }}
         onSuspend={(user) => {
           setDetailTarget(null)
           setSuspendTarget(user)

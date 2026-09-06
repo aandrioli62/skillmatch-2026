@@ -1,6 +1,7 @@
 package com.skillmatch.userservice.controller;
 
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
+import com.skillmatch.userservice.dto.response.ReportResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import com.skillmatch.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -78,6 +80,23 @@ public class AdminUserController {
             @Parameter(description = "UUID of the professional", required = true)
             @PathVariable("userId") UUID userId) {
         return ResponseEntity.ok(userService.getProfessionalProfile(userId));
+    }
+
+    @Operation(
+            summary = "List reports filed against a user",
+            description = "Returns all reports (open and closed) filed against a given user, most recent "
+                    + "first — reviewed alongside the profile before deciding to validate or suspend."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Reports returned"),
+            @ApiResponse(responseCode = "403", description = "Caller does not have ADMIN role",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @GetMapping("/{userId}/reports")
+    public ResponseEntity<List<ReportResponse>> listReportsForUser(
+            @Parameter(description = "UUID of the reported user", required = true)
+            @PathVariable("userId") UUID userId) {
+        return ResponseEntity.ok(userService.listReportsForUser(userId));
     }
 
     // -------------------------------------------------------------------------

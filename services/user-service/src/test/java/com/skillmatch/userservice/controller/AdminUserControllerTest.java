@@ -2,11 +2,13 @@ package com.skillmatch.userservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
+import com.skillmatch.userservice.dto.response.ReportResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import com.skillmatch.userservice.config.TestSecurityConfig;
 import com.skillmatch.userservice.exception.GlobalExceptionHandler;
 import com.skillmatch.userservice.exception.InvalidUserOperationException;
 import com.skillmatch.userservice.exception.UserNotFoundException;
+import com.skillmatch.userservice.model.enums.ReportStatus;
 import com.skillmatch.userservice.model.enums.UserRole;
 import com.skillmatch.userservice.model.enums.UserStatus;
 import com.skillmatch.userservice.service.UserService;
@@ -131,6 +133,41 @@ class AdminUserControllerTest {
 
             mockMvc.perform(get("/api/v1/admin/users/{userId}/professional-profile", userId)
                             .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_PROFESSIONAL"))))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
+    // GET /api/v1/admin/users/{userId}/reports
+    // =========================================================================
+
+    @Nested
+    @DisplayName("GET /api/v1/admin/users/{userId}/reports")
+    class ListReportsForUser {
+
+        @Test
+        @DisplayName("ADMIN role → 200 OK with reports")
+        void listReportsForUser_admin_ok() throws Exception {
+            UUID userId = UUID.randomUUID();
+            ReportResponse report = new ReportResponse();
+            report.setReporterEmail("reporter@example.com");
+            report.setReason("No-show alla scadenza.");
+            report.setStatus(ReportStatus.OPEN);
+
+            when(userService.listReportsForUser(userId)).thenReturn(List.of(report));
+
+            mockMvc.perform(get("/api/v1/admin/users/{userId}/reports", userId)
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].reporterEmail").value("reporter@example.com"))
+                    .andExpect(jsonPath("$[0].status").value("OPEN"));
+        }
+
+        @Test
+        @DisplayName("non-ADMIN role → 403 Forbidden")
+        void listReportsForUser_nonAdmin_forbidden() throws Exception {
+            mockMvc.perform(get("/api/v1/admin/users/{userId}/reports", UUID.randomUUID())
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_COMPANY"))))
                     .andExpect(status().isForbidden());
         }
     }

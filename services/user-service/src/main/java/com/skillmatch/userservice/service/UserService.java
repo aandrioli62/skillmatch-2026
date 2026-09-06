@@ -4,11 +4,13 @@ import com.skillmatch.userservice.dto.request.CompanyProfileRequest;
 import com.skillmatch.userservice.dto.request.PortfolioItemRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalProfileRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalSkillRequest;
+import com.skillmatch.userservice.dto.request.ReportRequest;
 import com.skillmatch.userservice.dto.request.UserRegistrationRequest;
 import com.skillmatch.userservice.dto.response.CompanyProfileResponse;
 import com.skillmatch.userservice.dto.response.PortfolioItemResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalSkillResponse;
+import com.skillmatch.userservice.dto.response.ReportResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -108,6 +110,28 @@ public interface UserService {
      * Returns all validated professionals who possess the given skill (case-insensitive match).
      */
     List<ProfessionalProfileResponse> searchProfessionalsBySkill(String skillName);
+
+    /**
+     * Files a report against another user (e.g. the counterparty of a problematic contract),
+     * on behalf of the caller identified by their Keycloak subject.
+     *
+     * @throws com.skillmatch.userservice.exception.UserNotFoundException       if the caller or the reported user does not exist
+     * @throws com.skillmatch.userservice.exception.InvalidUserOperationException if the caller tries to report themselves
+     */
+    ReportResponse createReport(String reporterKeycloakId, ReportRequest request);
+
+    /**
+     * Admin: lists all reports filed against a given user, most recent first.
+     */
+    List<ReportResponse> listReportsForUser(UUID userId);
+
+    /**
+     * Admin: closes a report (reviewed, no further action needed on it — suspending the
+     * reported user, if warranted, is a separate action).
+     *
+     * @throws com.skillmatch.userservice.exception.ReportNotFoundException if the report does not exist
+     */
+    void closeReport(UUID reportId);
 
     /**
      * Admin: transitions a PROFESSIONAL from PENDING or SUSPENDED to VALIDATED.
