@@ -20,7 +20,11 @@ spec:
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:26.0
-          args: ["start-dev", "--http-port=8180", "--import-realm"]
+          # --proxy-headers=xforwarded: Traefik terminates TLS and forwards plain HTTP
+          # internally, so without this Keycloak never learns the original request was
+          # HTTPS — breaks anything that depends on that (e.g. the Account Console's
+          # own follow-up XHR calls, which can hang indefinitely instead of failing loudly).
+          args: ["start-dev", "--http-port=8180", "--import-realm", "--proxy-headers=xforwarded"]
           ports:
             - containerPort: 8180
           env:
