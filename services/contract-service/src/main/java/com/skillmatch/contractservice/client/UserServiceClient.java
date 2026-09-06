@@ -25,27 +25,26 @@ public class UserServiceClient {
 
     private final RestClient userServiceRestClient;
 
-    @CircuitBreaker(name = "default", fallbackMethod = "getCurrentUserFallback")
-    public UserStatusResponse getCurrentUser() {
+    /**
+     * Annotated directly on this method (rather than delegating to a separate, internally
+     * called getCurrentUser()) because Spring AOP proxies self-invocations right past the
+     * @CircuitBreaker advice — a delegating call would silently skip the fallback.
+     */
+    @CircuitBreaker(name = "default", fallbackMethod = "resolveCurrentUserIdFallback")
+    public UUID resolveCurrentUserId() {
         return userServiceRestClient.get()
                 .uri("/api/v1/users/me")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + currentBearerToken())
                 .retrieve()
-                .body(UserStatusResponse.class);
+                .body(UserStatusResponse.class)
+                .getId();
     }
 
     @SuppressWarnings("unused")
-    private UserStatusResponse getCurrentUserFallback(Throwable ex) {
+    private UUID resolveCurrentUserIdFallback(Throwable ex) {
         log.error("User Service unavailable while resolving current user: {}", ex.getMessage());
         throw new UserServiceUnavailableException(
                 "Unable to resolve the authenticated caller's identity", ex);
-    }
-
-    /**
-     * Convenience wrapper for controllers: returns just the resolved user id.
-     */
-    public UUID resolveCurrentUserId() {
-        return getCurrentUser().getId();
     }
 
     private String currentBearerToken() {

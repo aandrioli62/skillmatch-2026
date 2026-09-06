@@ -1,6 +1,5 @@
 package com.skillmatch.paymentservice.controller;
 
-import com.skillmatch.paymentservice.client.UserServiceClient;
 import com.skillmatch.paymentservice.dto.request.CommissionConfigRequest;
 import com.skillmatch.paymentservice.dto.response.CommissionConfigResponse;
 import com.skillmatch.paymentservice.service.PaymentService;
@@ -16,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,7 +34,6 @@ import java.util.UUID;
 public class AdminCommissionController {
 
     private final PaymentService paymentService;
-    private final UserServiceClient userServiceClient;
 
     @Operation(
             summary = "Get the current commission rate",
@@ -61,8 +61,12 @@ public class AdminCommissionController {
     })
     @PutMapping
     public ResponseEntity<CommissionConfigResponse> updateCommissionRate(
-            @Valid @RequestBody CommissionConfigRequest request) {
-        UUID adminId = userServiceClient.resolveCurrentUserId();
+            @Valid @RequestBody CommissionConfigRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        // The acting admin's identity is taken directly from the JWT subject (Keycloak id)
+        // rather than resolved through User Service: admins have no row there by design
+        // (they are provisioned only in Keycloak), and this field is purely an audit trail.
+        UUID adminId = UUID.fromString(jwt.getSubject());
         return ResponseEntity.ok(paymentService.updateCommissionRate(adminId, request));
     }
 }

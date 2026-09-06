@@ -222,11 +222,10 @@ class PaymentServiceIntegrationTest {
         UUID professionalId = UUID.randomUUID();
         UUID contractId = UUID.randomUUID();
 
-        when(userServiceClient.resolveCurrentUserId()).thenReturn(adminId);
         CommissionConfigRequest rateRequest = new CommissionConfigRequest();
         rateRequest.setRatePercentage(BigDecimal.valueOf(15));
         mockMvc.perform(put("/api/v1/admin/commission-config")
-                        .with(jwt().authorities(ADMIN))
+                        .with(jwt().jwt(b -> b.subject(adminId.toString())).authorities(ADMIN))
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(rateRequest)))
                 .andExpect(status().isOk())

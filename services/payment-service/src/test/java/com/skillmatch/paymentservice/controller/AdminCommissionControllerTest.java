@@ -1,7 +1,6 @@
 package com.skillmatch.paymentservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.skillmatch.paymentservice.client.UserServiceClient;
 import com.skillmatch.paymentservice.config.TestSecurityConfig;
 import com.skillmatch.paymentservice.dto.request.CommissionConfigRequest;
 import com.skillmatch.paymentservice.dto.response.CommissionConfigResponse;
@@ -47,9 +46,6 @@ class AdminCommissionControllerTest {
     @MockBean
     private PaymentService paymentService;
 
-    @MockBean
-    private UserServiceClient userServiceClient;
-
     @Nested
     @DisplayName("GET /api/v1/admin/commission-config")
     class GetCommissionConfig {
@@ -88,11 +84,10 @@ class AdminCommissionControllerTest {
             CommissionConfigResponse response = new CommissionConfigResponse();
             response.setRatePercentage(BigDecimal.valueOf(10.00));
 
-            when(userServiceClient.resolveCurrentUserId()).thenReturn(adminId);
             when(paymentService.updateCommissionRate(eq(adminId), any())).thenReturn(response);
 
             mockMvc.perform(put("/api/v1/admin/commission-config")
-                            .with(jwt().authorities(ROLE_ADMIN))
+                            .with(jwt().jwt(b -> b.subject(adminId.toString())).authorities(ROLE_ADMIN))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())

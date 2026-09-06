@@ -93,6 +93,18 @@ class UserServiceClientTest {
     }
 
     @Test
+    void resolveCurrentUserId_downstreamError_propagatesAsHttpException() {
+        mockServer.expect(requestTo("http://user-service/api/v1/users/me"))
+                .andRespond(withServerError());
+
+        // No Spring context here, so the @CircuitBreaker annotation has no AOP proxy to
+        // intercept this and redirect to the fallback: the raw HTTP exception surfaces,
+        // exactly as it would from the RestClient call itself.
+        assertThatThrownBy(() -> userServiceClient.resolveCurrentUserId())
+                .isNotInstanceOf(UserServiceUnavailableException.class);
+    }
+
+    @Test
     void currentBearerToken_noAuthentication_throwsIllegalState() {
         SecurityContextHolder.clearContext();
         UUID userId = UUID.randomUUID();
@@ -126,11 +138,11 @@ class UserServiceClientTest {
     }
 
     @Test
-    void getCurrentUserFallback_wrapsThrowableAsUserServiceUnavailable() {
+    void resolveCurrentUserIdFallback_wrapsThrowableAsUserServiceUnavailable() {
         RuntimeException cause = new RuntimeException("timeout");
 
         assertThatThrownBy(() ->
-                ReflectionTestUtils.invokeMethod(userServiceClient, "getCurrentUserFallback", cause))
+                ReflectionTestUtils.invokeMethod(userServiceClient, "resolveCurrentUserIdFallback", cause))
                 .isInstanceOf(UserServiceUnavailableException.class)
                 .hasCause(cause);
     }
