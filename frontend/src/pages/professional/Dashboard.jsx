@@ -2,8 +2,8 @@ import { Box, Button, Chip, List, ListItem, ListItemText, Paper, Rating, Stack, 
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import DataSection from '../../components/DataSection'
-import { useAuth } from '../../hooks/useAuth'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
+import { useDisplayName } from '../../hooks/useDisplayName'
 import api from '../../services/api'
 import { candidatureStatusInfo, formatDate } from '../../utils/format'
 
@@ -21,7 +21,7 @@ function StatCard({ label, value }) {
 }
 
 export default function ProfessionalDashboard() {
-  const { username } = useAuth()
+  const displayName = useDisplayName()
   const { user } = useCurrentUser()
 
   const [openProjects, setOpenProjects] = useState(null)
@@ -79,7 +79,7 @@ export default function ProfessionalDashboard() {
   return (
     <>
       <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
-        Bentornato, {username}
+        Bentornato, {displayName}
       </Typography>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>

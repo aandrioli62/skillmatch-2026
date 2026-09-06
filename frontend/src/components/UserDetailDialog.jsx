@@ -28,7 +28,7 @@ const STATUS_COLOR = {
 // skills with certification links, portfolio, payout account), plus a second
 // tab with every report filed against this user (professional or company),
 // so the admin can judge whether they add up to a suspension.
-export default function UserDetailDialog({ user, onClose, onValidate, onSuspend }) {
+export default function UserDetailDialog({ user, onClose, onValidate, onSuspend, onDeactivate }) {
   const [tab, setTab] = useState(0)
   const [profile, setProfile] = useState(null)
   const [reports, setReports] = useState(null)
@@ -84,9 +84,7 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {profile ? `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim() || user.email : user.email}
           <Chip label={user.role} size="small" variant="outlined" />
-          {!(user.role === 'COMPANY' && user.status === 'PENDING') && (
-            <Chip label={user.status} color={STATUS_COLOR[user.status] ?? 'default'} size="small" />
-          )}
+          <Chip label={user.status} color={STATUS_COLOR[user.status] ?? 'default'} size="small" />
         </Box>
       </DialogTitle>
 
@@ -240,7 +238,7 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend 
         )}
       </DialogContent>
       <DialogActions>
-        {user.role === 'PROFESSIONAL' && user.status !== 'VALIDATED' && (
+        {user.status !== 'VALIDATED' && user.status !== 'DEACTIVATED' && (
           <Button
             variant="contained"
             onClick={() => {
@@ -248,12 +246,17 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend 
               onClose()
             }}
           >
-            Valida
+            {user.status === 'SUSPENDED' ? 'Riattiva' : 'Valida'}
           </Button>
         )}
-        {user.status !== 'SUSPENDED' && (
+        {user.status !== 'SUSPENDED' && user.status !== 'DEACTIVATED' && (
           <Button color="error" onClick={() => onSuspend(user)}>
             Sospendi
+          </Button>
+        )}
+        {user.status !== 'DEACTIVATED' && (
+          <Button color="error" onClick={() => onDeactivate(user)}>
+            Elimina
           </Button>
         )}
         <Button onClick={onClose}>Chiudi</Button>

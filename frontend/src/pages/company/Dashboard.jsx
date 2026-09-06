@@ -1,7 +1,7 @@
 import { Box, Chip, List, ListItem, ListItemText, Paper, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
 import DataSection from '../../components/DataSection'
-import { useAuth } from '../../hooks/useAuth'
+import { useDisplayName } from '../../hooks/useDisplayName'
 import api from '../../services/api'
 import { contractStatusInfo, projectStatusInfo } from '../../utils/format'
 
@@ -19,7 +19,7 @@ function StatCard({ label, value }) {
 }
 
 export default function CompanyDashboard() {
-  const { username } = useAuth()
+  const displayName = useDisplayName()
 
   const [projects, setProjects] = useState(null)
   const [projectsError, setProjectsError] = useState(null)
@@ -44,7 +44,7 @@ export default function CompanyDashboard() {
   return (
     <>
       <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
-        Bentornato, {username}
+        Bentornato, {displayName}
       </Typography>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 3 }}>

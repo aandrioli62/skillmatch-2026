@@ -118,6 +118,28 @@ public class KeycloakAdminClient {
         }
     }
 
+    /**
+     * Disables the Keycloak account so it can never log in again — used when an admin
+     * deactivates a user. The user record itself is kept in this service's own database
+     * (see UserServiceImpl.deactivateUser), only the identity is locked out.
+     *
+     * @throws KeycloakAdminException if Keycloak rejects the request (e.g. unknown id)
+     */
+    public void disableUser(String keycloakId) {
+        String token = obtainAdminToken();
+        try {
+            restClient.put()
+                    .uri("/admin/realms/{realm}/users/{id}", targetRealm, keycloakId)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("enabled", false))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException ex) {
+            throw new KeycloakAdminException("Failed to disable the Keycloak user " + keycloakId, ex);
+        }
+    }
+
     private void assignRealmRole(String token, String keycloakId, String roleName) {
         try {
             Map<String, Object> role = restClient.get()

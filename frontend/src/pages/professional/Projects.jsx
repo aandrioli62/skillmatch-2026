@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -12,14 +13,19 @@ import {
   Snackbar,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 import DataSection from '../../components/DataSection'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
 import api from '../../services/api'
 import { candidatureStatusInfo } from '../../utils/format'
 
 export default function ProfessionalProjects() {
+  const { user } = useCurrentUser()
+  const isValidated = user?.status === 'VALIDATED'
+
   const [projects, setProjects] = useState(null)
   const [projectsError, setProjectsError] = useState(null)
 
@@ -80,6 +86,13 @@ export default function ProfessionalProjects() {
         Progetti disponibili
       </Typography>
 
+      {!isValidated && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Il tuo profilo non è stato ancora approvato da un amministratore. Potrai candidarti ai progetti non appena
+          la validazione sarà completata.
+        </Alert>
+      )}
+
       <DataSection
         loading={projects === null && !projectsError}
         error={projectsError}
@@ -117,9 +130,18 @@ export default function ProfessionalProjects() {
                       size="small"
                     />
                   ) : (
-                    <Button variant="contained" size="small" onClick={() => openApplyDialog(project)}>
-                      Candidati
-                    </Button>
+                    <Tooltip title={isValidated ? '' : 'Il tuo profilo deve prima essere approvato da un amministratore'}>
+                      <span>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          disabled={!isValidated}
+                          onClick={() => openApplyDialog(project)}
+                        >
+                          Candidati
+                        </Button>
+                      </span>
+                    </Tooltip>
                   )}
                 </Box>
               </ListItem>

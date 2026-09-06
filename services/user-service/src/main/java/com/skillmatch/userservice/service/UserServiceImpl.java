@@ -1,5 +1,6 @@
 package com.skillmatch.userservice.service;
 
+import com.skillmatch.userservice.client.KeycloakAdminClient;
 import com.skillmatch.userservice.dto.request.CompanyProfileRequest;
 import com.skillmatch.userservice.dto.request.PortfolioItemRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalProfileRequest;
@@ -79,6 +80,7 @@ public class UserServiceImpl implements UserService {
     private final PortfolioItemRepository       portfolioItemRepository;
     private final ReportRepository              reportRepository;
     private final EventPublisherService         eventPublisher;
+    private final KeycloakAdminClient           keycloakAdminClient;
     private final UserMapper                    userMapper;
     private final ProfessionalProfileMapper     professionalProfileMapper;
     private final CompanyProfileMapper          companyProfileMapper;
@@ -338,6 +340,24 @@ public class UserServiceImpl implements UserService {
         return userMapper.toResponse(user);
     }
 
+    @Override
+    public UserResponse deactivateUser(UUID userId) {
+        User user = findUserById(userId);
+
+        if (user.getStatus() == UserStatus.DEACTIVATED) {
+            throw new InvalidUserOperationException(
+                    "User with id=" + userId + " is already DEACTIVATED.");
+        }
+
+        keycloakAdminClient.disableUser(user.getKeycloakId());
+
+        user.setStatus(UserStatus.DEACTIVATED);
+        user = userRepository.save(user);
+
+        log.info("User deactivated by admin: userId={}", userId);
+        return userMapper.toResponse(user);
+    }
+
     // =========================================================================
     // Reputation update (triggered by feedback.submitted event)
     // =========================================================================
@@ -360,7 +380,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Page<UserResponse> listUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).map(user -> {
+        return userRepository.findByStatusNot(UserStatus.DEACTIVATED, pageable).map(user -> {
             UserResponse response = userMapper.toResponse(user);
             long openReports = reportRepository.countByReportedUserIdAndStatus(user.getId(), ReportStatus.OPEN);
             response.setOpenReportCount((int) openReports);

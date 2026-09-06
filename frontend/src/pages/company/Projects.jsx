@@ -1,6 +1,7 @@
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -21,6 +22,7 @@ import {
 import { useEffect, useState } from 'react'
 import DataSection from '../../components/DataSection'
 import SkillPicker from '../../components/SkillPicker'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
 import api from '../../services/api'
 import { candidatureStatusInfo, formatDate, projectStatusInfo, reputationLevelInfo, shortId } from '../../utils/format'
 
@@ -33,6 +35,9 @@ const EMPTY_FORM = {
 }
 
 export default function CompanyProjects() {
+  const { user } = useCurrentUser()
+  const isValidated = user?.status === 'VALIDATED'
+
   const [projects, setProjects] = useState(null)
   const [projectsError, setProjectsError] = useState(null)
 
@@ -178,10 +183,21 @@ export default function CompanyProjects() {
         <Typography variant="h5" sx={{ fontWeight: 600 }}>
           I miei progetti
         </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>
-          Nuovo progetto
-        </Button>
+        <Tooltip title={isValidated ? '' : 'Il tuo profilo deve prima essere approvato da un amministratore'}>
+          <span>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog} disabled={!isValidated}>
+              Nuovo progetto
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
+
+      {!isValidated && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Il tuo profilo non è stato ancora approvato da un amministratore. Potrai pubblicare progetti non appena la
+          validazione sarà completata.
+        </Alert>
+      )}
 
       <DataSection
         loading={projects === null && !projectsError}

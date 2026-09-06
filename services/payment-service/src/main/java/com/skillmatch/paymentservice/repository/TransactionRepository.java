@@ -26,10 +26,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     // Admin oversight: status and/or a creation-date range are optional (each null
     // parameter is a no-op filter), so the same query serves "all transactions",
     // "just COMPLETED ones", "just this month", or any combination of the two.
+    // Each optional filter is checked as "cast(:param as ...) IS NULL OR ..." rather
+    // than a bare "(:param IS NULL OR ...)" — with an untyped null bound to a parameter
+    // that only ever appears in an IS NULL check, PostgreSQL's JDBC driver cannot infer
+    // its type at parse time ("could not determine data type of parameter $n"). The
+    // explicit cast gives that occurrence a type regardless of which branch runs.
     @Query("SELECT t FROM Transaction t WHERE "
-            + "(:status IS NULL OR t.status = :status) AND "
-            + "(:from IS NULL OR t.createdAt >= :from) AND "
-            + "(:to IS NULL OR t.createdAt <= :to)")
+            + "(CAST(:status AS string) IS NULL OR t.status = :status) AND "
+            + "(CAST(:from AS timestamp) IS NULL OR t.createdAt >= :from) AND "
+            + "(CAST(:to AS timestamp) IS NULL OR t.createdAt <= :to)")
     Page<Transaction> findWithFilters(
             @Param("status") TransactionStatus status,
             @Param("from") LocalDateTime from,
@@ -42,9 +47,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             + "COALESCE(SUM(t.netAmount), 0) AS totalNet, "
             + "COUNT(t) AS count "
             + "FROM Transaction t WHERE "
-            + "(:status IS NULL OR t.status = :status) AND "
-            + "(:from IS NULL OR t.createdAt >= :from) AND "
-            + "(:to IS NULL OR t.createdAt <= :to)")
+            + "(CAST(:status AS string) IS NULL OR t.status = :status) AND "
+            + "(CAST(:from AS timestamp) IS NULL OR t.createdAt >= :from) AND "
+            + "(CAST(:to AS timestamp) IS NULL OR t.createdAt <= :to)")
     TransactionSummaryProjection summarize(
             @Param("status") TransactionStatus status,
             @Param("from") LocalDateTime from,

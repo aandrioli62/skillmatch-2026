@@ -214,9 +214,7 @@ export default function AppLayout() {
               sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }}
               onClick={(e) => setUserMenuAnchor(e.currentTarget)}
             >
-              <Typography variant="body2">
-                {displayName ? `Bentornato, ${displayName}` : 'Bentornato'}
-              </Typography>
+              <Typography variant="body2">{displayName || username}</Typography>
               <Avatar
                 sx={{
                   width: 32,

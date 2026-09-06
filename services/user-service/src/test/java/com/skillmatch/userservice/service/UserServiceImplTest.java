@@ -1,5 +1,6 @@
 package com.skillmatch.userservice.service;
 
+import com.skillmatch.userservice.client.KeycloakAdminClient;
 import com.skillmatch.userservice.dto.request.CompanyProfileRequest;
 import com.skillmatch.userservice.dto.request.PortfolioItemRequest;
 import com.skillmatch.userservice.dto.request.ProfessionalProfileRequest;
@@ -87,6 +88,8 @@ class UserServiceImplTest {
     private ReportRepository reportRepository;
     @Mock
     private EventPublisherService eventPublisher;
+    @Mock
+    private KeycloakAdminClient keycloakAdminClient;
     @Mock
     private UserMapper userMapper;
     @Mock
@@ -682,6 +685,42 @@ class UserServiceImplTest {
     }
 
     // =========================================================================
+    // deactivateUser
+    // =========================================================================
+
+    @Nested
+    @DisplayName("deactivateUser()")
+    class DeactivateUser {
+
+        @Test
+        @DisplayName("active user: disables the Keycloak identity and transitions to DEACTIVATED")
+        void deactivateUser_success() {
+            when(userRepository.findById(userId)).thenReturn(Optional.of(professionalUser));
+            when(userRepository.save(professionalUser)).thenReturn(professionalUser);
+            when(userMapper.toResponse(professionalUser)).thenReturn(userResponse);
+
+            userService.deactivateUser(userId);
+
+            verify(keycloakAdminClient).disableUser("kc-pro-001");
+            assertThat(professionalUser.getStatus()).isEqualTo(UserStatus.DEACTIVATED);
+        }
+
+        @Test
+        @DisplayName("already DEACTIVATED user: throws InvalidUserOperationException without touching Keycloak")
+        void deactivateUser_alreadyDeactivated_throws() {
+            professionalUser.setStatus(UserStatus.DEACTIVATED);
+            when(userRepository.findById(userId)).thenReturn(Optional.of(professionalUser));
+
+            assertThatThrownBy(() -> userService.deactivateUser(userId))
+                    .isInstanceOf(InvalidUserOperationException.class)
+                    .hasMessageContaining("already DEACTIVATED");
+
+            verifyNoInteractions(keycloakAdminClient);
+            verify(userRepository, never()).save(any());
+        }
+    }
+
+    // =========================================================================
     // updateReputation
     // =========================================================================
 
@@ -790,12 +829,12 @@ class UserServiceImplTest {
     class ListUsers {
 
         @Test
-        @DisplayName("returns paginated mapped users")
+        @DisplayName("returns paginated mapped users, excluding DEACTIVATED")
         void listUsers_returnsMappedPage() {
             Pageable pageable = PageRequest.of(0, 10);
             Page<User> userPage = new PageImpl<>(List.of(professionalUser), pageable, 1);
 
-            when(userRepository.findAll(pageable)).thenReturn(userPage);
+            when(userRepository.findByStatusNot(UserStatus.DEACTIVATED, pageable)).thenReturn(userPage);
             when(userMapper.toResponse(professionalUser)).thenReturn(userResponse);
 
             Page<UserResponse> result = userService.listUsers(pageable);

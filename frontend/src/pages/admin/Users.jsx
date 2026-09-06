@@ -24,6 +24,7 @@ const STATUS_COLOR = {
   PENDING: 'warning',
   VALIDATED: 'success',
   SUSPENDED: 'error',
+  DEACTIVATED: 'default',
 }
 
 export default function AdminUsers() {
@@ -35,6 +36,7 @@ export default function AdminUsers() {
 
   const [suspendTarget, setSuspendTarget] = useState(null)
   const [validateTarget, setValidateTarget] = useState(null)
+  const [deactivateTarget, setDeactivateTarget] = useState(null)
   const [detailTarget, setDetailTarget] = useState(null)
   const [message, setMessage] = useState(null)
 
@@ -61,10 +63,11 @@ export default function AdminUsers() {
   useEffect(loadUsers, [page])
 
   const confirmValidate = () => {
+    const wasSuspended = validateTarget.status === 'SUSPENDED'
     api
       .post(`/admin/users/${validateTarget.id}/validate`)
       .then(() => {
-        setMessage('Professionista validato.')
+        setMessage(wasSuspended ? 'Account riattivato.' : 'Account validato.')
         setValidateTarget(null)
         loadUsers()
       })
@@ -77,6 +80,17 @@ export default function AdminUsers() {
       .then(() => {
         setMessage('Utente sospeso.')
         setSuspendTarget(null)
+        loadUsers()
+      })
+      .catch((err) => setMessage(err.response?.data?.detail || err.message))
+  }
+
+  const deactivateUser = () => {
+    api
+      .post(`/admin/users/${deactivateTarget.id}/deactivate`)
+      .then(() => {
+        setMessage('Account eliminato.')
+        setDeactivateTarget(null)
         loadUsers()
       })
       .catch((err) => setMessage(err.response?.data?.detail || err.message))
@@ -107,6 +121,7 @@ export default function AdminUsers() {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {profileNames[user.id] || user.email}
                     <Chip label={user.role} size="small" variant="outlined" />
+                    <Chip label={user.status} color={STATUS_COLOR[user.status] ?? 'default'} size="small" />
                     {user.openReportCount > 0 && (
                       <Chip
                         icon={<FlagIcon />}
@@ -120,7 +135,7 @@ export default function AdminUsers() {
                 secondary={user.email}
               />
               <Stack direction="row" spacing={1} alignItems="center">
-                {user.role === 'PROFESSIONAL' && user.status !== 'VALIDATED' && (
+                {user.status !== 'VALIDATED' && user.status !== 'DEACTIVATED' && (
                   <Button
                     size="small"
                     variant="contained"
@@ -129,10 +144,10 @@ export default function AdminUsers() {
                       setValidateTarget(user)
                     }}
                   >
-                    Valida
+                    {user.status === 'SUSPENDED' ? 'Riattiva' : 'Valida'}
                   </Button>
                 )}
-                {user.status !== 'SUSPENDED' && (
+                {user.status !== 'SUSPENDED' && user.status !== 'DEACTIVATED' && (
                   <Button
                     size="small"
                     variant="outlined"
@@ -145,10 +160,18 @@ export default function AdminUsers() {
                     Sospendi
                   </Button>
                 )}
-                {/* PENDING has no meaning for COMPANY accounts — only PROFESSIONAL
-                    registrations go through admin validation. */}
-                {!(user.role === 'COMPANY' && user.status === 'PENDING') && (
-                  <Chip label={user.status} color={STATUS_COLOR[user.status] ?? 'default'} size="small" />
+                {user.status !== 'DEACTIVATED' && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="error"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setDeactivateTarget(user)
+                    }}
+                  >
+                    Elimina
+                  </Button>
                 )}
               </Stack>
             </ListItem>
@@ -167,16 +190,20 @@ export default function AdminUsers() {
       )}
 
       <Dialog open={Boolean(validateTarget)} onClose={() => setValidateTarget(null)}>
-        <DialogTitle>Validare il professionista?</DialogTitle>
+        <DialogTitle>
+          {validateTarget?.status === 'SUSPENDED' ? 'Riattivare questo account?' : 'Validare questo account?'}
+        </DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            "{validateTarget?.email}" potrà candidarsi ai progetti pubblicati.
+            {validateTarget?.role === 'COMPANY'
+              ? `"${validateTarget?.email}" potrà pubblicare progetti e gestire candidature.`
+              : `"${validateTarget?.email}" potrà candidarsi ai progetti pubblicati.`}
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setValidateTarget(null)}>Annulla</Button>
           <Button variant="contained" onClick={confirmValidate}>
-            Valida
+            {validateTarget?.status === 'SUSPENDED' ? 'Riattiva' : 'Valida'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -192,6 +219,22 @@ export default function AdminUsers() {
           <Button onClick={() => setSuspendTarget(null)}>Annulla</Button>
           <Button variant="contained" color="error" onClick={suspendUser}>
             Sospendi
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(deactivateTarget)} onClose={() => setDeactivateTarget(null)}>
+        <DialogTitle>Eliminare questo account?</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            "{deactivateTarget?.email}" non potrà più accedere alla piattaforma — l'operazione non è reversibile da
+            qui. Contratti, pagamenti e feedback già collegati a questo account restano consultabili.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeactivateTarget(null)}>Annulla</Button>
+          <Button variant="contained" color="error" onClick={deactivateUser}>
+            Elimina
           </Button>
         </DialogActions>
       </Dialog>
@@ -213,6 +256,10 @@ export default function AdminUsers() {
         onSuspend={(user) => {
           setDetailTarget(null)
           setSuspendTarget(user)
+        }}
+        onDeactivate={(user) => {
+          setDetailTarget(null)
+          setDeactivateTarget(user)
         }}
       />
 

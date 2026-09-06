@@ -1,6 +1,6 @@
 import { Box, Paper, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
-import { useAuth } from '../../hooks/useAuth'
+import { useDisplayName } from '../../hooks/useDisplayName'
 import api from '../../services/api'
 
 function StatCard({ label, value }) {
@@ -17,7 +17,7 @@ function StatCard({ label, value }) {
 }
 
 export default function AdminDashboard() {
-  const { username } = useAuth()
+  const displayName = useDisplayName()
 
   const [pendingCount, setPendingCount] = useState(null)
   const [transactionCount, setTransactionCount] = useState(null)
@@ -46,7 +46,7 @@ export default function AdminDashboard() {
   return (
     <>
       <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
-        Bentornato, {username}
+        Bentornato, {displayName}
       </Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
         <StatCard label="Utenti da validare" value={pendingCount ?? '…'} />

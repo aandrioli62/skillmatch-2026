@@ -45,7 +45,9 @@ public class AdminUserController {
 
     @Operation(
             summary = "List all users (paginated)",
-            description = "Returns a paginated list of all registered users sorted by creation date descending. "
+            description = "Returns a paginated list of all registered users, sorted by creation date descending, "
+                    + "excluding DEACTIVATED accounts — a logical delete with no further admin action possible, "
+                    + "kept out of this list so it doesn't fill up with accounts nobody can act on anymore. "
                     + "Useful for monitoring and selecting accounts to validate or suspend (UC-A1, UC-A3)."
     )
     @ApiResponses({
@@ -150,5 +152,32 @@ public class AdminUserController {
             @Parameter(description = "UUID of the user to suspend", required = true)
             @PathVariable("userId") UUID userId) {
         return ResponseEntity.ok(userService.suspendUser(userId));
+    }
+
+    // -------------------------------------------------------------------------
+    // Deactivation (account removal)
+    // -------------------------------------------------------------------------
+
+    @Operation(
+            summary = "Permanently deactivate a user account",
+            description = "Disables the user's Keycloak identity (they can never log in again) and marks the "
+                    + "account DEACTIVATED. Unlike suspension, there is no way back via the API — contracts, "
+                    + "payments and feedback already tied to this id remain visible to admins."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User deactivated successfully",
+                    content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Caller does not have ADMIN role",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "User not found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "422", description = "User is already DEACTIVATED",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PostMapping("/{userId}/deactivate")
+    public ResponseEntity<UserResponse> deactivateUser(
+            @Parameter(description = "UUID of the user to deactivate", required = true)
+            @PathVariable("userId") UUID userId) {
+        return ResponseEntity.ok(userService.deactivateUser(userId));
     }
 }

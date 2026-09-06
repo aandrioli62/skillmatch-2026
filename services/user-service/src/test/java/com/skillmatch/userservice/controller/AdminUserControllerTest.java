@@ -306,6 +306,63 @@ class AdminUserControllerTest {
     }
 
     // =========================================================================
+    // POST /api/v1/admin/users/{userId}/deactivate
+    // =========================================================================
+
+    @Nested
+    @DisplayName("POST /api/v1/admin/users/{userId}/deactivate")
+    class DeactivateUser {
+
+        @Test
+        @DisplayName("ADMIN deactivates active user → 200 OK")
+        void deactivateUser_admin_ok() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UserResponse deactivated = buildUserResponse(UserRole.PROFESSIONAL, UserStatus.DEACTIVATED);
+            deactivated.setId(userId);
+
+            when(userService.deactivateUser(userId)).thenReturn(deactivated);
+
+            mockMvc.perform(post("/api/v1/admin/users/{userId}/deactivate", userId)
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("DEACTIVATED"));
+        }
+
+        @Test
+        @DisplayName("user not found → 404 Not Found")
+        void deactivateUser_notFound() throws Exception {
+            UUID unknown = UUID.randomUUID();
+            when(userService.deactivateUser(unknown)).thenThrow(new UserNotFoundException(unknown));
+
+            mockMvc.perform(post("/api/v1/admin/users/{userId}/deactivate", unknown)
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("already deactivated → 422 Unprocessable Entity")
+        void deactivateUser_alreadyDeactivated() throws Exception {
+            UUID userId = UUID.randomUUID();
+            when(userService.deactivateUser(userId))
+                    .thenThrow(new InvalidUserOperationException("already DEACTIVATED"));
+
+            mockMvc.perform(post("/api/v1/admin/users/{userId}/deactivate", userId)
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                    .andExpect(status().isUnprocessableEntity());
+        }
+
+        @Test
+        @DisplayName("non-ADMIN role → 403 Forbidden")
+        void deactivateUser_nonAdmin_forbidden() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            mockMvc.perform(post("/api/v1/admin/users/{userId}/deactivate", userId)
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_PROFESSIONAL"))))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 

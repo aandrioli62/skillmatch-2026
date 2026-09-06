@@ -152,6 +152,17 @@ public interface UserService {
     UserResponse suspendUser(UUID userId);
 
     /**
+     * Admin: permanently removes a user's access. Unlike {@link #suspendUser}, this
+     * also disables the Keycloak identity itself (the user can never log in again) —
+     * the row is kept only so contracts/payments/feedback already tied to this id
+     * stay resolvable. There is no way back from this via the API.
+     *
+     * @throws com.skillmatch.userservice.exception.UserNotFoundException       if user does not exist
+     * @throws com.skillmatch.userservice.exception.InvalidUserOperationException if user is already DEACTIVATED
+     */
+    UserResponse deactivateUser(UUID userId);
+
+    /**
      * Recalculates and persists the reputation level for a professional based on
      * aggregated feedback stats received via feedback.submitted event.
      * Thresholds (from business rules):

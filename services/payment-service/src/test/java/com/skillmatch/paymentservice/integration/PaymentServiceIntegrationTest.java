@@ -37,6 +37,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -242,6 +243,63 @@ class PaymentServiceIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.commissionAmount").value(150.00));
         receiveEventType();
+    }
+
+    // Regression test: TransactionRepository's optional status/from/to filters used a
+    // bare "(:param IS NULL OR ...)" JPQL check. Against a real PostgreSQL JDBC driver
+    // (not reachable by a Mockito-mocked repository, hence why this slipped through),
+    // a parameter that only ever appears in an untyped "IS NULL" comparison makes
+    // Postgres fail with "could not determine data type of parameter $n" — reproduced
+    // only when both admin endpoints are called with every filter left unset.
+    @Test
+    void adminListAndSummary_withNoFilters_doesNotFailOnParameterTypeInference() throws Exception {
+        UUID companyId = UUID.randomUUID();
+        UUID professionalId = UUID.randomUUID();
+        UUID contractId = UUID.randomUUID();
+
+        when(userServiceClient.resolveCurrentUserId()).thenReturn(companyId);
+        when(contractServiceClient.getContract(contractId))
+                .thenReturn(completedContract(contractId, companyId, professionalId, BigDecimal.valueOf(300)));
+
+        mockMvc.perform(post("/api/v1/payments")
+                        .with(jwt().authorities(COMPANY))
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(requestFor(contractId))))
+                .andExpect(status().isCreated());
+        receiveEventType(); // drain payment.completed
+
+        mockMvc.perform(get("/api/v1/transactions/admin/all").with(jwt().authorities(ADMIN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isNotEmpty());
+
+        mockMvc.perform(get("/api/v1/transactions/admin/summary").with(jwt().authorities(ADMIN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(greaterThanOrEqualTo(1)));
+    }
+
+    @Test
+    void adminListAndSummary_withFilters_stillWork() throws Exception {
+        UUID companyId = UUID.randomUUID();
+        UUID professionalId = UUID.randomUUID();
+        UUID contractId = UUID.randomUUID();
+
+        when(userServiceClient.resolveCurrentUserId()).thenReturn(companyId);
+        when(contractServiceClient.getContract(contractId))
+                .thenReturn(completedContract(contractId, companyId, professionalId, BigDecimal.valueOf(300)));
+
+        mockMvc.perform(post("/api/v1/payments")
+                        .with(jwt().authorities(COMPANY))
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(requestFor(contractId))))
+                .andExpect(status().isCreated());
+        receiveEventType();
+
+        mockMvc.perform(get("/api/v1/transactions/admin/all")
+                        .param("status", "COMPLETED")
+                        .param("from", "2020-01-01T00:00:00")
+                        .with(jwt().authorities(ADMIN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isNotEmpty());
     }
 
     private InitiatePaymentRequest requestFor(UUID contractId) {
