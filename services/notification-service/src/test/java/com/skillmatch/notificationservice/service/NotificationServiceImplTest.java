@@ -1,5 +1,6 @@
 package com.skillmatch.notificationservice.service;
 
+import com.skillmatch.notificationservice.client.UserServiceClient;
 import com.skillmatch.notificationservice.dto.response.NotificationResponse;
 import com.skillmatch.notificationservice.event.IncomingEvent;
 import com.skillmatch.notificationservice.exception.NotificationNotFoundException;
@@ -25,6 +26,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -38,6 +41,10 @@ class NotificationServiceImplTest {
     private NotificationRepository notificationRepository;
     @Mock
     private NotificationMapper notificationMapper;
+    @Mock
+    private UserServiceClient userServiceClient;
+    @Mock
+    private MailService mailService;
 
     @InjectMocks
     private NotificationServiceImpl notificationService;
@@ -139,6 +146,76 @@ class NotificationServiceImplTest {
             notificationService.processEvent(eventOf("user.registered", null));
 
             verify(notificationRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("processEvent() — real email dispatch")
+    class ProcessEventEmail {
+
+        @Test
+        @DisplayName("user.validated: also sends a real email to the professional")
+        void userValidated_sendsEmail() {
+            UUID userId = UUID.randomUUID();
+            when(userServiceClient.getUserEmail(userId)).thenReturn("prof@example.com");
+
+            notificationService.processEvent(eventOf("user.validated", Map.of("userId", userId.toString())));
+
+            verify(mailService).send(eq("prof@example.com"), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("candidature.accepted: sends an email to both the professional and the company")
+        void candidatureAccepted_sendsEmailToBoth() {
+            UUID professionalId = UUID.randomUUID();
+            UUID companyId = UUID.randomUUID();
+            when(userServiceClient.getUserEmail(professionalId)).thenReturn("prof@example.com");
+            when(userServiceClient.getUserEmail(companyId)).thenReturn("company@example.com");
+
+            notificationService.processEvent(eventOf("candidature.accepted", Map.of(
+                    "professionalId", professionalId.toString(),
+                    "companyId", companyId.toString())));
+
+            verify(mailService).send(eq("prof@example.com"), anyString(), anyString());
+            verify(mailService).send(eq("company@example.com"), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("payment.completed: sends an email to both parties")
+        void paymentCompleted_sendsEmailToBoth() {
+            UUID companyId = UUID.randomUUID();
+            UUID professionalId = UUID.randomUUID();
+            when(userServiceClient.getUserEmail(companyId)).thenReturn("company@example.com");
+            when(userServiceClient.getUserEmail(professionalId)).thenReturn("prof@example.com");
+
+            notificationService.processEvent(eventOf("payment.completed", Map.of(
+                    "companyId", companyId.toString(),
+                    "professionalId", professionalId.toString())));
+
+            verify(mailService, times(2)).send(anyString(), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("candidature.submitted: in-app only, no email sent")
+        void candidatureSubmitted_noEmail() {
+            UUID companyId = UUID.randomUUID();
+            notificationService.processEvent(eventOf("candidature.submitted", Map.of(
+                    "companyId", companyId.toString(),
+                    "projectTitle", "Consulenza UI/UX")));
+
+            verify(mailService, never()).send(anyString(), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("email lookup failure: notification is still saved, exception does not propagate")
+        void emailLookupFails_doesNotBreakNotification() {
+            UUID userId = UUID.randomUUID();
+            when(userServiceClient.getUserEmail(userId)).thenThrow(new RuntimeException("User Service unavailable"));
+
+            notificationService.processEvent(eventOf("user.validated", Map.of("userId", userId.toString())));
+
+            verify(notificationRepository).save(any(Notification.class));
+            verify(mailService, never()).send(anyString(), anyString(), anyString());
         }
     }
 

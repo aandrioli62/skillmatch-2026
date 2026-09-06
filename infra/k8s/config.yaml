@@ -14,6 +14,7 @@ metadata:
 data:
   keycloak-issuer-uri: "https://keycloak.92.4.167.195.nip.io/realms/skillmatch"
   keycloak-jwk-uri: "http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs"
+  keycloak-token-uri: "http://keycloak:8180/realms/skillmatch/protocol/openid-connect/token"
   rabbitmq-host: "rabbitmq"
   mongo-host: "mongodb"
 ---

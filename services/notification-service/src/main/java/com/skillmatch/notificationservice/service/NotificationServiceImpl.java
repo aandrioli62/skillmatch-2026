@@ -1,5 +1,6 @@
 package com.skillmatch.notificationservice.service;
 
+import com.skillmatch.notificationservice.client.UserServiceClient;
 import com.skillmatch.notificationservice.dto.response.NotificationResponse;
 import com.skillmatch.notificationservice.event.IncomingEvent;
 import com.skillmatch.notificationservice.exception.NotificationNotFoundException;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -22,8 +24,21 @@ import java.util.stream.Collectors;
 @Slf4j
 public class NotificationServiceImpl implements NotificationService {
 
+    // Event types important enough that the recipient also gets a real email, on top
+    // of the in-app notification every event type already gets. Chosen deliberately —
+    // not every event, to avoid spamming inboxes (and burning the SMTP provider's free-tier quota).
+    private static final Set<String> EMAIL_EVENT_TYPES = Set.of(
+            "user.validated", "candidature.accepted", "payment.completed");
+
+    private static final Map<String, String> EMAIL_SUBJECTS = Map.of(
+            "user.validated", "Il tuo profilo e' stato validato",
+            "candidature.accepted", "Aggiornamento sulla tua candidatura",
+            "payment.completed", "Pagamento elaborato");
+
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
+    private final UserServiceClient userServiceClient;
+    private final MailService mailService;
 
     @Override
     public void processEvent(IncomingEvent event) {
@@ -42,9 +57,22 @@ public class NotificationServiceImpl implements NotificationService {
             notification.setCreatedAt(Instant.now());
             notificationRepository.save(notification);
 
-            // Mock the email channel (Fase 5): "sending" a notification just means logging it.
             log.info("Notification sent: recipientId={}, eventType={}, message=\"{}\"",
                     recipient.id(), event.getEventType(), recipient.message());
+
+            if (recipient.id() != null && EMAIL_EVENT_TYPES.contains(event.getEventType())) {
+                sendEmailSafely(event.getEventType(), recipient);
+            }
+        }
+    }
+
+    private void sendEmailSafely(String eventType, Recipient recipient) {
+        try {
+            String email = userServiceClient.getUserEmail(recipient.id());
+            mailService.send(email, EMAIL_SUBJECTS.getOrDefault(eventType, "Aggiornamento da SkillMatch"), recipient.message());
+        } catch (Exception ex) {
+            log.error("Could not send email for eventType={}, recipientId={}: {}",
+                    eventType, recipient.id(), ex.getMessage());
         }
     }
 

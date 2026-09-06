@@ -241,7 +241,22 @@ services:
       RABBITMQ_HOST: rabbitmq
       KEYCLOAK_ISSUER_URI: http://localhost:8180/realms/skillmatch
       KEYCLOAK_JWK_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/certs
+      KEYCLOAK_TOKEN_URI: http://keycloak:8180/realms/skillmatch/protocol/openid-connect/token
       USER_SERVICE_BASE_URL: http://user-service:8081
+      # Client Credentials service account (Keycloak client "notification-service") used
+      # to call User Service outside any HTTP request context (the RabbitMQ listener has
+      # no caller JWT to relay). Secret only, kept out of git — put it in a gitignored
+      # infra/.env alongside the SMTP vars below: NOTIFICATION_SERVICE_CLIENT_SECRET=...
+      NOTIFICATION_SERVICE_CLIENT_ID: notification-service
+      NOTIFICATION_SERVICE_CLIENT_SECRET: ${NOTIFICATION_SERVICE_CLIENT_SECRET:?set in infra/.env — NOTIFICATION_SERVICE_CLIENT_SECRET=<value>}
+      # Brevo SMTP relay — real third-party credentials, must never be committed. Put
+      # SMTP_USER / SMTP_PASSWORD / SMTP_FROM in a gitignored infra/.env file.
+      SMTP_HOST: ${SMTP_HOST:-smtp-relay.brevo.com}
+      SMTP_PORT: 587
+      SMTP_USER: ${SMTP_USER:?set in infra/.env — SMTP_USER=<brevo smtp login>}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?set in infra/.env — SMTP_PASSWORD=<brevo smtp key>}
+      SMTP_FROM: ${SMTP_FROM:?set in infra/.env — SMTP_FROM=<verified sender address>}
+      SMTP_FROM_DISPLAY_NAME: SkillMatch
       JAVA_OPTS: "-Xmx256m -Xms128m"
     ports:
       - "8086:8086"

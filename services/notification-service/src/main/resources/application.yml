@@ -15,6 +15,32 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/skillmatch}
           jwk-set-uri: ${KEYCLOAK_JWK_URI:http://localhost:8180/realms/skillmatch/protocol/openid-connect/certs}
+      client:
+        registration:
+          user-service:
+            provider: keycloak
+            client-id: ${NOTIFICATION_SERVICE_CLIENT_ID:notification-service}
+            client-secret: ${NOTIFICATION_SERVICE_CLIENT_SECRET:}
+            authorization-grant-type: client_credentials
+        provider:
+          keycloak:
+            token-uri: ${KEYCLOAK_TOKEN_URI:http://localhost:8180/realms/skillmatch/protocol/openid-connect/token}
+  mail:
+    host: ${SMTP_HOST:smtp-relay.brevo.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+notification:
+  mail:
+    from-address: ${SMTP_FROM:}
+    from-display-name: ${SMTP_FROM_DISPLAY_NAME:SkillMatch}
 
 server:
   port: ${SERVER_PORT:8086}

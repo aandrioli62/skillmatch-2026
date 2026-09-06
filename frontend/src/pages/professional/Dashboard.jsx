@@ -1,7 +1,9 @@
-import { Box, Chip, List, ListItem, ListItemText, Paper, Rating, Typography } from '@mui/material'
+import { Box, Button, Chip, List, ListItem, ListItemText, Paper, Rating, Stack, Typography } from '@mui/material'
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import DataSection from '../../components/DataSection'
 import { useAuth } from '../../hooks/useAuth'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
 import api from '../../services/api'
 import { candidatureStatusInfo, formatDate } from '../../utils/format'
 
@@ -20,6 +22,7 @@ function StatCard({ label, value }) {
 
 export default function ProfessionalDashboard() {
   const { username } = useAuth()
+  const { user } = useCurrentUser()
 
   const [openProjects, setOpenProjects] = useState(null)
   const [openProjectsError, setOpenProjectsError] = useState(null)
@@ -29,6 +32,8 @@ export default function ProfessionalDashboard() {
 
   const [feedback, setFeedback] = useState(null)
   const [feedbackError, setFeedbackError] = useState(null)
+
+  const [skills, setSkills] = useState(null)
 
   useEffect(() => {
     api
@@ -47,7 +52,29 @@ export default function ProfessionalDashboard() {
       .catch((err) => setFeedbackError(err.message))
   }, [])
 
+  useEffect(() => {
+    if (!user) return
+    api
+      .get(`/users/${user.id}/professional-profile`)
+      .then((res) => setSkills(res.data.skills ?? []))
+      .catch(() => setSkills([]))
+  }, [user])
+
   const projectTitleById = new Map((openProjects ?? []).map((p) => [p.id, p.title]))
+
+  const skillNames = new Set((skills ?? []).map((s) => s.skillName.toLowerCase()))
+  const nearbyProjects = (openProjects ?? [])
+    .map((project) => ({
+      project,
+      matchedSkillIds: new Set(
+        (project.requirements ?? [])
+          .filter((req) => skillNames.has(req.skillName.toLowerCase()))
+          .map((req) => req.id),
+      ),
+    }))
+    .filter((entry) => entry.matchedSkillIds.size > 0)
+    .sort((a, b) => b.matchedSkillIds.size - a.matchedSkillIds.size)
+    .slice(0, 5)
 
   return (
     <>
@@ -62,6 +89,45 @@ export default function ProfessionalDashboard() {
       </Box>
 
       <Box sx={{ display: 'grid', gap: 3 }}>
+        <DataSection
+          title="Progetti vicini alle tue competenze"
+          loading={(openProjects === null || skills === null) && !openProjectsError}
+          error={openProjectsError}
+          isEmpty={nearbyProjects.length === 0}
+          emptyLabel="Nessun progetto aperto corrisponde ancora alle tue competenze."
+        >
+          <List disablePadding>
+            {nearbyProjects.map(({ project, matchedSkillIds }) => (
+              <ListItem key={project.id} divider sx={{ alignItems: 'flex-start', py: 2 }}>
+                <ListItemText
+                  primary={project.title}
+                  secondary={
+                    <>
+                      <Typography variant="body2" color="text.secondary" component="span" display="block">
+                        Budget: €{project.budget} — {project.durationDays} giorni
+                      </Typography>
+                      <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', gap: 0.5 }}>
+                        {project.requirements?.map((req) => (
+                          <Chip
+                            key={req.id}
+                            label={req.skillName}
+                            size="small"
+                            color={matchedSkillIds.has(req.id) ? 'success' : 'default'}
+                            variant={matchedSkillIds.has(req.id) ? 'filled' : 'outlined'}
+                          />
+                        ))}
+                      </Stack>
+                    </>
+                  }
+                />
+                <Button component={Link} to="/professional/projects" size="small" sx={{ ml: 2, flexShrink: 0 }}>
+                  Vai al progetto
+                </Button>
+              </ListItem>
+            ))}
+          </List>
+        </DataSection>
+
         <DataSection
           title="Progetti aperti"
           loading={openProjects === null && !openProjectsError}

@@ -24,6 +24,7 @@ import java.util.UUID;
 public class UserServiceClient {
 
     private final RestClient userServiceRestClient;
+    private final RestClient internalUserServiceRestClient;
 
     /**
      * Annotated directly on this method (rather than delegating to a separate, internally
@@ -45,6 +46,26 @@ public class UserServiceClient {
         log.error("User Service unavailable while resolving current user: {}", ex.getMessage());
         throw new UserServiceUnavailableException(
                 "Unable to resolve the authenticated caller's identity", ex);
+    }
+
+    /**
+     * Looks up a notification recipient's email via a Client-Credentials-authenticated
+     * call — used from the RabbitMQ event listener, which has no caller JWT to relay.
+     */
+    @CircuitBreaker(name = "default", fallbackMethod = "getUserEmailFallback")
+    public String getUserEmail(UUID userId) {
+        return internalUserServiceRestClient.get()
+                .uri("/api/v1/users/{id}", userId)
+                .retrieve()
+                .body(UserStatusResponse.class)
+                .getEmail();
+    }
+
+    @SuppressWarnings("unused")
+    private String getUserEmailFallback(UUID userId, Throwable ex) {
+        log.error("User Service unavailable while resolving email for userId={}: {}", userId, ex.getMessage());
+        throw new UserServiceUnavailableException(
+                "Unable to resolve email for userId=" + userId, ex);
     }
 
     private String currentBearerToken() {

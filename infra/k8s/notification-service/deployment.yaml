@@ -63,8 +63,55 @@ spec:
                 configMapKeyRef:
                   name: skillmatch-config
                   key: keycloak-jwk-uri
+            - name: KEYCLOAK_TOKEN_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: skillmatch-config
+                  key: keycloak-token-uri
             - name: USER_SERVICE_BASE_URL
               value: "http://user-service:8081"
+            # Client Credentials service account (Keycloak client "notification-service"),
+            # used to call User Service outside any HTTP request context. Unlike the
+            # other secrets in infra/k8s/config.yaml, this one is deliberately NOT
+            # declared there: config.yaml is re-applied on every deploy-k8s.sh run, which
+            # would silently wipe a real secret back to a placeholder. Create it once,
+            # out-of-band, directly on the cluster:
+            #   kubectl create secret generic notification-service-oauth \
+            #     --namespace skillmatch --from-literal=client-secret=<value from Keycloak>
+            - name: NOTIFICATION_SERVICE_CLIENT_ID
+              value: "notification-service"
+            - name: NOTIFICATION_SERVICE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-oauth
+                  key: client-secret
+            # Brevo SMTP relay — real third-party credentials. Same reasoning as above:
+            # created once, out-of-band, never through the declarative config.yaml apply.
+            #   kubectl create secret generic smtp-credentials --namespace skillmatch \
+            #     --from-literal=user=<brevo smtp login> \
+            #     --from-literal=password=<brevo smtp key> \
+            #     --from-literal=from=<verified sender address>
+            - name: SMTP_HOST
+              value: "smtp-relay.brevo.com"
+            - name: SMTP_PORT
+              value: "587"
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-credentials
+                  key: user
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-credentials
+                  key: password
+            - name: SMTP_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-credentials
+                  key: from
+            - name: SMTP_FROM_DISPLAY_NAME
+              value: "SkillMatch"
             - name: JAVA_OPTS
               value: "-Xmx256m -Xms128m"
           startupProbe:
