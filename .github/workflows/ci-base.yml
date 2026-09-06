@@ -19,4 +19,12 @@ jobs:
 
       - name: Validate docker-compose.yml
         working-directory: infra
+        # Dummy values only, to satisfy the required-variable checks (${VAR:?...}) on
+        # secrets that must never be committed — this step parses/validates the file's
+        # structure, it never actually starts a container with these values.
+        env:
+          NOTIFICATION_SERVICE_CLIENT_SECRET: ci-placeholder
+          SMTP_USER: ci-placeholder
+          SMTP_PASSWORD: ci-placeholder
+          SMTP_FROM: ci-placeholder@example.com
         run: docker compose -f docker-compose.yml config --quiet
