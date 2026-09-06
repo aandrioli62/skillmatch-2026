@@ -1,6 +1,8 @@
 import {
   Alert,
   Button,
+  Checkbox,
+  FormControlLabel,
   Link as MuiLink,
   Paper,
   Stack,
@@ -10,7 +12,7 @@ import {
   Typography,
 } from '@mui/material'
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link as RouterLink, useSearchParams } from 'react-router-dom'
 import AuthBackground from '../components/AuthBackground'
 import keycloak from '../keycloak'
 import { publicApi } from '../services/api'
@@ -26,6 +28,7 @@ export default function Register() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [companyName, setCompanyName] = useState('')
+  const [acceptTerms, setAcceptTerms] = useState(false)
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -37,6 +40,10 @@ export default function Register() {
 
     if (password !== confirmPassword) {
       setError('Le password non coincidono.')
+      return
+    }
+    if (!acceptTerms) {
+      setError('Devi accettare i Termini di Servizio e l\'Informativa Privacy per registrarti.')
       return
     }
 
@@ -153,6 +160,27 @@ export default function Register() {
               fullWidth
             />
           )}
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+              />
+            }
+            label={
+              <Typography variant="body2">
+                Accetto i{' '}
+                <MuiLink component={RouterLink} to="/termini" target="_blank">
+                  Termini di Servizio
+                </MuiLink>{' '}
+                e l'
+                <MuiLink component={RouterLink} to="/privacy" target="_blank">
+                  Informativa Privacy
+                </MuiLink>
+              </Typography>
+            }
+          />
 
           {error && <Alert severity="error">{error}</Alert>}
 

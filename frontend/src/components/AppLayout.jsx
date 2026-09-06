@@ -2,7 +2,9 @@ import AssignmentIcon from '@mui/icons-material/Assignment'
 import BusinessIcon from '@mui/icons-material/Business'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import DescriptionIcon from '@mui/icons-material/Description'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutlineOutlined'
 import LogoutIcon from '@mui/icons-material/Logout'
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts'
 import MenuIcon from '@mui/icons-material/Menu'
 import PaymentIcon from '@mui/icons-material/Payment'
 import PersonIcon from '@mui/icons-material/Person'
@@ -32,6 +34,7 @@ import {
 import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useDisplayName } from '../hooks/useDisplayName'
 import RequireProfile from './RequireProfile'
 
 const DRAWER_WIDTH = 260
@@ -75,7 +78,8 @@ const ROLE_COLOR = {
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuAnchor, setUserMenuAnchor] = useState(null)
-  const { roles, username, logout } = useAuth()
+  const { roles, username, keycloak, logout } = useAuth()
+  const displayName = useDisplayName()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -128,12 +132,37 @@ export default function AppLayout() {
         })}
       </List>
       <Divider />
+      <Box sx={{ px: 2.5, py: 1.5 }}>
+        <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
+          SkillMatch
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Connette professionisti e aziende per micro-progetti a breve termine.
+        </Typography>
+      </Box>
       <List>
-        <ListItemButton onClick={logout} sx={{ mx: 1, borderRadius: 2 }}>
+        <ListItemButton
+          component={Link}
+          to="/faq"
+          onClick={() => setMobileOpen(false)}
+          sx={{ mx: 1, borderRadius: 2 }}
+        >
           <ListItemIcon>
-            <LogoutIcon />
+            <HelpOutlineIcon />
           </ListItemIcon>
-          <ListItemText primary="Logout" />
+          <ListItemText primary="FAQ" />
+        </ListItemButton>
+        <ListItemButton
+          component="a"
+          href={keycloak.createAccountUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{ mx: 1, borderRadius: 2 }}
+        >
+          <ListItemIcon>
+            <ManageAccountsIcon />
+          </ListItemIcon>
+          <ListItemText primary="Gestisci account" />
         </ListItemButton>
       </List>
     </Box>
@@ -169,7 +198,9 @@ export default function AppLayout() {
             sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }}
             onClick={(e) => setUserMenuAnchor(e.currentTarget)}
           >
-            <Typography variant="body2">{username}</Typography>
+            <Typography variant="body2">
+              {displayName ? `Bentornato, ${displayName}` : 'Bentornato'}
+            </Typography>
             <Avatar
               sx={{
                 width: 32,
@@ -177,7 +208,7 @@ export default function AppLayout() {
                 background: 'linear-gradient(135deg, #4f46e5, #14b8a6)',
               }}
             >
-              {username?.charAt(0).toUpperCase()}
+              {(displayName || username)?.charAt(0).toUpperCase()}
             </Avatar>
           </Box>
           <Menu

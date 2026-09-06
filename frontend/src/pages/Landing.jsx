@@ -1,6 +1,6 @@
 import HandshakeIcon from '@mui/icons-material/Handshake'
-import { Box, Button, Divider, Paper, Stack, Typography } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
+import { Box, Button, Divider, Link as MuiLink, Paper, Stack, Typography } from '@mui/material'
+import { Link, useNavigate } from 'react-router-dom'
 import AuthBackground from '../components/AuthBackground'
 import keycloak from '../keycloak'
 
@@ -9,9 +9,10 @@ export default function Landing() {
 
   return (
     <AuthBackground>
+      <Stack spacing={2} alignItems="center" sx={{ width: '100%', maxWidth: 420 }}>
       <Paper
         elevation={8}
-        sx={{ p: 4, maxWidth: 420, width: '100%', position: 'relative', zIndex: 1 }}
+        sx={{ p: 4, width: '100%', position: 'relative', zIndex: 1 }}
       >
         <Box
           sx={{
@@ -58,6 +59,16 @@ export default function Landing() {
           </Button>
         </Stack>
       </Paper>
+      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)', position: 'relative', zIndex: 1 }}>
+        <MuiLink component={Link} to="/privacy" sx={{ color: 'inherit' }}>
+          Privacy
+        </MuiLink>
+        {' · '}
+        <MuiLink component={Link} to="/termini" sx={{ color: 'inherit' }}>
+          Termini di Servizio
+        </MuiLink>
+      </Typography>
+      </Stack>
     </AuthBackground>
   )
 }

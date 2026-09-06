@@ -10,6 +10,7 @@ import CompanyContracts from './pages/company/Contracts'
 import CompanyDashboard from './pages/company/Dashboard'
 import CompanyPayments from './pages/company/Payments'
 import CompanyProjects from './pages/company/Projects'
+import Faq from './pages/Faq'
 import NotFound from './pages/NotFound'
 import ProfessionalApplications from './pages/professional/Applications'
 import ProfessionalContracts from './pages/professional/Contracts'
@@ -18,8 +19,10 @@ import ProfessionalFeedback from './pages/professional/Feedback'
 import ProfessionalPayments from './pages/professional/Payments'
 import ProfessionalProjects from './pages/professional/Projects'
 import Landing from './pages/Landing'
+import Privacy from './pages/Privacy'
 import Profile from './pages/Profile'
 import Register from './pages/Register'
+import Terms from './pages/Terms'
 import Unauthorized from './pages/Unauthorized'
 
 function RoleHome() {
@@ -44,6 +47,8 @@ function App() {
     <Routes>
       <Route path="/" element={<Root />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/termini" element={<Terms />} />
 
       <Route element={<AppLayout />}>
 
@@ -52,6 +57,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/faq"
+          element={
+            <ProtectedRoute>
+              <Faq />
             </ProtectedRoute>
           }
         />
