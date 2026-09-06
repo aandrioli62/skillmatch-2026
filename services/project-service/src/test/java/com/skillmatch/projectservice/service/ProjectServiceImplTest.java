@@ -515,6 +515,92 @@ class ProjectServiceImplTest {
     }
 
     // =========================================================================
+    // rejectCandidature
+    // =========================================================================
+
+    @Nested
+    @DisplayName("rejectCandidature()")
+    class RejectCandidature {
+
+        private UUID candidatureId;
+        private Candidature pendingCandidature;
+
+        @BeforeEach
+        void setUpCandidature() {
+            candidatureId = UUID.randomUUID();
+            pendingCandidature = new Candidature();
+            pendingCandidature.setId(candidatureId);
+            pendingCandidature.setProject(openProject);
+            pendingCandidature.setProfessionalId(UUID.randomUUID());
+            pendingCandidature.setStatus(CandidatureStatus.PENDING);
+        }
+
+        @Test
+        @DisplayName("rejects a PENDING candidature without touching the project")
+        void rejectCandidature_success() {
+            when(projectRepository.findById(projectId)).thenReturn(Optional.of(openProject));
+            when(candidatureRepository.findById(candidatureId)).thenReturn(Optional.of(pendingCandidature));
+            when(candidatureRepository.save(pendingCandidature)).thenReturn(pendingCandidature);
+            when(candidatureMapper.toResponse(pendingCandidature)).thenReturn(new CandidatureResponse());
+
+            projectService.rejectCandidature(companyId, projectId, candidatureId);
+
+            assertThat(pendingCandidature.getStatus()).isEqualTo(CandidatureStatus.REJECTED);
+            assertThat(openProject.getStatus()).isNotEqualTo(ProjectStatus.ASSIGNED);
+            verify(projectRepository, never()).save(any());
+            verify(eventPublisher, never()).publishCandidatureAccepted(any());
+        }
+
+        @Test
+        @DisplayName("caller is not the owning company: throws InvalidProjectOperationException")
+        void rejectCandidature_notOwner_throws() {
+            when(projectRepository.findById(projectId)).thenReturn(Optional.of(openProject));
+
+            assertThatThrownBy(() -> projectService.rejectCandidature(UUID.randomUUID(), projectId, candidatureId))
+                    .isInstanceOf(InvalidProjectOperationException.class)
+                    .hasMessageContaining("not the owner");
+        }
+
+        @Test
+        @DisplayName("unknown candidature: throws CandidatureNotFoundException")
+        void rejectCandidature_notFound_throws() {
+            when(projectRepository.findById(projectId)).thenReturn(Optional.of(openProject));
+            when(candidatureRepository.findById(candidatureId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> projectService.rejectCandidature(companyId, projectId, candidatureId))
+                    .isInstanceOf(CandidatureNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("candidature belongs to a different project: throws InvalidProjectOperationException")
+        void rejectCandidature_wrongProject_throws() {
+            Project otherProject = new Project();
+            otherProject.setId(UUID.randomUUID());
+            pendingCandidature.setProject(otherProject);
+
+            when(projectRepository.findById(projectId)).thenReturn(Optional.of(openProject));
+            when(candidatureRepository.findById(candidatureId)).thenReturn(Optional.of(pendingCandidature));
+
+            assertThatThrownBy(() -> projectService.rejectCandidature(companyId, projectId, candidatureId))
+                    .isInstanceOf(InvalidProjectOperationException.class)
+                    .hasMessageContaining("does not belong to project");
+        }
+
+        @Test
+        @DisplayName("candidature is not PENDING: throws InvalidProjectOperationException")
+        void rejectCandidature_notPending_throws() {
+            pendingCandidature.setStatus(CandidatureStatus.ACCEPTED);
+
+            when(projectRepository.findById(projectId)).thenReturn(Optional.of(openProject));
+            when(candidatureRepository.findById(candidatureId)).thenReturn(Optional.of(pendingCandidature));
+
+            assertThatThrownBy(() -> projectService.rejectCandidature(companyId, projectId, candidatureId))
+                    .isInstanceOf(InvalidProjectOperationException.class)
+                    .hasMessageContaining("not PENDING");
+        }
+    }
+
+    // =========================================================================
     // completeProject
     // =========================================================================
 

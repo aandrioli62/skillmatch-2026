@@ -108,6 +108,17 @@ export default function CompanyProjects() {
       .catch((err) => setActionError(err.response?.data?.detail || err.message))
   }
 
+  const rejectCandidate = (candidatureId) => {
+    setActionError(null)
+    api
+      .put(`/projects/${candidatesTarget.id}/candidatures/${candidatureId}/reject`)
+      .then((res) => {
+        setMessage('Candidatura rifiutata.')
+        setCandidates((prev) => prev.map((c) => (c.id === candidatureId ? res.data : c)))
+      })
+      .catch((err) => setActionError(err.response?.data?.detail || err.message))
+  }
+
   const openCreateDialog = () => {
     setForm(EMPTY_FORM)
     setCreateError(null)
@@ -239,9 +250,14 @@ export default function CompanyProjects() {
                       }
                     />
                     {candidate.status === 'PENDING' ? (
-                      <Button size="small" variant="contained" onClick={() => acceptCandidate(candidate.id)}>
-                        Accetta
-                      </Button>
+                      <Stack direction="row" spacing={1}>
+                        <Button size="small" variant="contained" onClick={() => acceptCandidate(candidate.id)}>
+                          Accetta
+                        </Button>
+                        <Button size="small" variant="outlined" color="error" onClick={() => rejectCandidate(candidate.id)}>
+                          Rifiuta
+                        </Button>
+                      </Stack>
                     ) : (
                       <Chip label={statusInfo.label} color={statusInfo.color} size="small" />
                     )}

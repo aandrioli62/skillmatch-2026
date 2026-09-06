@@ -232,4 +232,38 @@ class CandidatureControllerTest {
                     .andExpect(status().isForbidden());
         }
     }
+
+    @Nested
+    @DisplayName("PUT /api/v1/projects/{projectId}/candidatures/{candidatureId}/reject")
+    class RejectCandidature {
+
+        @Test
+        @DisplayName("owning company → 200 OK")
+        void rejectCandidature_success() throws Exception {
+            UUID companyId = UUID.randomUUID();
+            UUID projectId = UUID.randomUUID();
+            UUID candidatureId = UUID.randomUUID();
+            CandidatureResponse response = new CandidatureResponse();
+            response.setStatus(CandidatureStatus.REJECTED);
+
+            when(userServiceClient.resolveCurrentUserId()).thenReturn(companyId);
+            when(projectService.rejectCandidature(companyId, projectId, candidatureId)).thenReturn(response);
+
+            mockMvc.perform(put("/api/v1/projects/{projectId}/candidatures/{candidatureId}/reject", projectId, candidatureId)
+                            .with(jwt().authorities(ROLE_COMPANY)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("REJECTED"));
+        }
+
+        @Test
+        @DisplayName("PROFESSIONAL role → 403 Forbidden")
+        void rejectCandidature_wrongRole_forbidden() throws Exception {
+            UUID projectId = UUID.randomUUID();
+            UUID candidatureId = UUID.randomUUID();
+
+            mockMvc.perform(put("/api/v1/projects/{projectId}/candidatures/{candidatureId}/reject", projectId, candidatureId)
+                            .with(jwt().authorities(ROLE_PROFESSIONAL)))
+                    .andExpect(status().isForbidden());
+        }
+    }
 }

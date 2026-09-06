@@ -77,6 +77,16 @@ public interface ProjectService {
     CandidatureResponse acceptCandidature(UUID companyId, UUID projectId, UUID candidatureId);
 
     /**
+     * Rejects a single PENDING candidature. Only the owning company may reject, and only a
+     * PENDING candidature may be rejected. Does not affect the project's status or any other candidature.
+     *
+     * @throws com.skillmatch.projectservice.exception.ProjectNotFoundException          if project does not exist
+     * @throws com.skillmatch.projectservice.exception.CandidatureNotFoundException      if candidature does not exist
+     * @throws com.skillmatch.projectservice.exception.InvalidProjectOperationException  if the caller is not the owner, the candidature does not belong to the project, or the candidature is not PENDING
+     */
+    CandidatureResponse rejectCandidature(UUID companyId, UUID projectId, UUID candidatureId);
+
+    /**
      * Marks an assigned project as completed and publishes project.completed
      * (enables payment in Payment Service). Only the owning company may complete its own project.
      *

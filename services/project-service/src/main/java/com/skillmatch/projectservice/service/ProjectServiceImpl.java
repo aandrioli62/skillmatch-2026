@@ -230,6 +230,31 @@ public class ProjectServiceImpl implements ProjectService {
         return candidatureMapper.toResponse(candidature);
     }
 
+    @Override
+    public CandidatureResponse rejectCandidature(UUID companyId, UUID projectId, UUID candidatureId) {
+        Project project = findProjectById(projectId);
+        assertOwnership(project, companyId);
+
+        Candidature candidature = candidatureRepository.findById(candidatureId)
+                .orElseThrow(() -> new CandidatureNotFoundException(candidatureId));
+
+        if (!candidature.getProject().getId().equals(projectId)) {
+            throw new InvalidProjectOperationException(
+                    "Candidature with id=" + candidatureId + " does not belong to project id=" + projectId);
+        }
+        if (candidature.getStatus() != CandidatureStatus.PENDING) {
+            throw new InvalidProjectOperationException(
+                    "Candidature with id=" + candidatureId + " is not PENDING and cannot be rejected");
+        }
+
+        candidature.setStatus(CandidatureStatus.REJECTED);
+        candidature = candidatureRepository.save(candidature);
+
+        log.info("Candidature rejected: candidatureId={}, projectId={}, professionalId={}",
+                candidatureId, projectId, candidature.getProfessionalId());
+        return candidatureMapper.toResponse(candidature);
+    }
+
     // =========================================================================
     // Completion
     // =========================================================================

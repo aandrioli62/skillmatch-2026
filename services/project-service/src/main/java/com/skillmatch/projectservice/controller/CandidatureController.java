@@ -122,4 +122,29 @@ public class CandidatureController {
         UUID companyId = userServiceClient.resolveCurrentUserId();
         return ResponseEntity.ok(projectService.acceptCandidature(companyId, projectId, candidatureId));
     }
+
+    @Operation(
+            summary = "Reject a candidature",
+            description = "Rejects a single PENDING candidature. Does not affect the project's status or "
+                    + "any other candidature."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Candidature rejected",
+                    content = @Content(schema = @Schema(implementation = CandidatureResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Project or candidature not found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "422", description = "Caller is not the owner, candidature does not "
+                    + "belong to the project, or the candidature is not PENDING",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PutMapping("/{projectId}/candidatures/{candidatureId}/reject")
+    @PreAuthorize("hasRole('COMPANY')")
+    public ResponseEntity<CandidatureResponse> rejectCandidature(
+            @Parameter(description = "Project UUID", required = true)
+            @PathVariable UUID projectId,
+            @Parameter(description = "Candidature UUID", required = true)
+            @PathVariable UUID candidatureId) {
+        UUID companyId = userServiceClient.resolveCurrentUserId();
+        return ResponseEntity.ok(projectService.rejectCandidature(companyId, projectId, candidatureId));
+    }
 }
