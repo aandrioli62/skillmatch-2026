@@ -106,6 +106,11 @@ class ProjectServiceImplTest {
         @Test
         @DisplayName("saves project with companyId set, saves each requirement linked to it")
         void createProject_success() {
+            UserStatusResponse validatedCompany = new UserStatusResponse();
+            validatedCompany.setRole("COMPANY");
+            validatedCompany.setStatus("VALIDATED");
+            when(userServiceClient.getUserStatus(companyId)).thenReturn(validatedCompany);
+
             ProjectRequirementRequest reqDto = new ProjectRequirementRequest();
             reqDto.setSkillName("Figma");
             ProjectCreateRequest request = new ProjectCreateRequest();
@@ -129,6 +134,44 @@ class ProjectServiceImplTest {
             assertThat(newProject.getCompanyId()).isEqualTo(companyId);
             assertThat(newRequirement.getProject()).isSameAs(draftProject);
             verifyNoInteractions(eventPublisher);
+        }
+
+        @Test
+        @DisplayName("caller is not a COMPANY: throws InvalidProjectOperationException")
+        void createProject_notCompany_throws() {
+            UserStatusResponse professional = new UserStatusResponse();
+            professional.setRole("PROFESSIONAL");
+            professional.setStatus("VALIDATED");
+            when(userServiceClient.getUserStatus(companyId)).thenReturn(professional);
+
+            ProjectCreateRequest request = new ProjectCreateRequest();
+            request.setTitle("Consulenza UI/UX");
+            request.setRequirements(List.of());
+
+            assertThatThrownBy(() -> projectService.createProject(companyId, request))
+                    .isInstanceOf(InvalidProjectOperationException.class)
+                    .hasMessageContaining("is not a COMPANY");
+
+            verifyNoInteractions(projectRepository);
+        }
+
+        @Test
+        @DisplayName("company not VALIDATED: throws InvalidProjectOperationException")
+        void createProject_companyNotValidated_throws() {
+            UserStatusResponse pendingCompany = new UserStatusResponse();
+            pendingCompany.setRole("COMPANY");
+            pendingCompany.setStatus("PENDING");
+            when(userServiceClient.getUserStatus(companyId)).thenReturn(pendingCompany);
+
+            ProjectCreateRequest request = new ProjectCreateRequest();
+            request.setTitle("Consulenza UI/UX");
+            request.setRequirements(List.of());
+
+            assertThatThrownBy(() -> projectService.createProject(companyId, request))
+                    .isInstanceOf(InvalidProjectOperationException.class)
+                    .hasMessageContaining("must be VALIDATED");
+
+            verifyNoInteractions(projectRepository);
         }
     }
 

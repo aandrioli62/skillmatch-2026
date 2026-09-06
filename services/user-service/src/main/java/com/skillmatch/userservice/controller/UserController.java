@@ -117,10 +117,10 @@ public class UserController {
     // -------------------------------------------------------------------------
 
     @Operation(
-            summary = "Get the professional's own profile",
-            description = "Self-service: returns the professional profile (bio, skills, portfolio, payment "
-                    + "account) for the authenticated professional, used to pre-fill the edit form. "
-                    + "The user must have role PROFESSIONAL."
+            summary = "Get a professional's profile",
+            description = "Returns the professional profile (bio, skills, portfolio, payment account, reputation) "
+                    + "for the given user id. Used both by a professional pre-filling their own edit form, and by "
+                    + "a company reviewing a candidature (to see the applicant's name and reputation)."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Profile returned",
@@ -131,7 +131,7 @@ public class UserController {
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @GetMapping("/{userId}/professional-profile")
-    @PreAuthorize("hasRole('PROFESSIONAL')")
+    @PreAuthorize("hasRole('PROFESSIONAL') or hasRole('COMPANY')")
     public ResponseEntity<ProfessionalProfileResponse> getProfessionalProfile(
             @Parameter(description = "User UUID", required = true)
             @PathVariable("userId") UUID userId) {

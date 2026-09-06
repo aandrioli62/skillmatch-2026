@@ -101,6 +101,16 @@ class ProjectServiceIntegrationTest {
         eventsQueueName = queue.getName();
     }
 
+    @BeforeEach
+    void defaultCompanyIsValidated() {
+        // Every test in this class assumes an already-validated company unless it
+        // overrides this stub for a specific id (e.g. to test the professional side).
+        UserStatusResponse validatedCompany = new UserStatusResponse();
+        validatedCompany.setRole("COMPANY");
+        validatedCompany.setStatus("VALIDATED");
+        when(userServiceClient.getUserStatus(any(UUID.class))).thenReturn(validatedCompany);
+    }
+
     @AfterEach
     void deleteTestQueue() {
         rabbitAdmin.deleteQueue(eventsQueueName);

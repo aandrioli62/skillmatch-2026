@@ -104,25 +104,26 @@ public class AdminUserController {
     // -------------------------------------------------------------------------
 
     @Operation(
-            summary = "Validate a professional's registration",
-            description = "Transitions a PROFESSIONAL user from PENDING (or SUSPENDED) to VALIDATED status, "
-                    + "allowing them to apply to projects. Publishes a `user.validated` event. (UC-A1)"
+            summary = "Validate a user's registration",
+            description = "Transitions a user (PROFESSIONAL or COMPANY) from PENDING (or SUSPENDED) to VALIDATED "
+                    + "status — required before a professional can apply to projects, or a company can publish "
+                    + "one. Publishes a `user.validated` event. (UC-A1)"
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Professional validated successfully",
+            @ApiResponse(responseCode = "200", description = "User validated successfully",
                     content = @Content(schema = @Schema(implementation = UserResponse.class))),
             @ApiResponse(responseCode = "403", description = "Caller does not have ADMIN role",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "User not found",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "422", description = "User is not a PROFESSIONAL or is already VALIDATED",
+            @ApiResponse(responseCode = "422", description = "User is already VALIDATED",
                     content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PostMapping("/{userId}/validate")
-    public ResponseEntity<UserResponse> validateProfessional(
-            @Parameter(description = "UUID of the professional to validate", required = true)
+    public ResponseEntity<UserResponse> validateUser(
+            @Parameter(description = "UUID of the user to validate", required = true)
             @PathVariable("userId") UUID userId) {
-        return ResponseEntity.ok(userService.validateProfessional(userId));
+        return ResponseEntity.ok(userService.validateUser(userId));
     }
 
     // -------------------------------------------------------------------------

@@ -21,4 +21,9 @@ public class CompanyProfileRequest {
 
     @Size(max = 200, message = "Contact person must not exceed 200 characters")
     private String contactPerson;
+
+    @Size(max = 2000, message = "Description must not exceed 2000 characters")
+    private String description;
+
+    private String paymentAccount;
 }

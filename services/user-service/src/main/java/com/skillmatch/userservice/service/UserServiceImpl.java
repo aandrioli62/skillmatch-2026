@@ -299,16 +299,12 @@ public class UserServiceImpl implements UserService {
     // =========================================================================
 
     @Override
-    public UserResponse validateProfessional(UUID userId) {
+    public UserResponse validateUser(UUID userId) {
         User user = findUserById(userId);
 
-        if (user.getRole() != UserRole.PROFESSIONAL) {
-            throw new InvalidUserOperationException(
-                    "Only PROFESSIONAL accounts can be validated. User id=" + userId + " has role=" + user.getRole());
-        }
         if (user.getStatus() == UserStatus.VALIDATED) {
             throw new InvalidUserOperationException(
-                    "Professional with id=" + userId + " is already in VALIDATED status.");
+                    "User with id=" + userId + " is already in VALIDATED status.");
         }
 
         user.setStatus(UserStatus.VALIDATED);
@@ -322,7 +318,7 @@ public class UserServiceImpl implements UserService {
                                 .build())
                         .build());
 
-        log.info("Professional validated by admin: userId={}", userId);
+        log.info("User validated by admin: userId={}, role={}", userId, user.getRole());
         return userMapper.toResponse(user);
     }
 

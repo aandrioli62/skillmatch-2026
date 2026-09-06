@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 public class ProjectServiceImpl implements ProjectService {
 
     private static final String ROLE_PROFESSIONAL = "PROFESSIONAL";
+    private static final String ROLE_COMPANY = "COMPANY";
     private static final String STATUS_VALIDATED = "VALIDATED";
 
     private final ProjectRepository projectRepository;
@@ -57,6 +58,16 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public ProjectResponse createProject(UUID companyId, ProjectCreateRequest request) {
+        UserStatusResponse company = userServiceClient.getUserStatus(companyId);
+        if (!ROLE_COMPANY.equals(company.getRole())) {
+            throw new InvalidProjectOperationException("User with id=" + companyId + " is not a COMPANY");
+        }
+        if (!STATUS_VALIDATED.equals(company.getStatus())) {
+            throw new InvalidProjectOperationException(
+                    "Company with id=" + companyId
+                            + " must be VALIDATED before publishing projects (current status=" + company.getStatus() + ")");
+        }
+
         Project project = projectMapper.toEntity(request);
         project.setCompanyId(companyId);
         project = projectRepository.save(project);

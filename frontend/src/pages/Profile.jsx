@@ -185,6 +185,8 @@ function CompanyProfileForm({ userId }) {
   const [vatNumber, setVatNumber] = useState('')
   const [address, setAddress] = useState('')
   const [contactPerson, setContactPerson] = useState('')
+  const [description, setDescription] = useState('')
+  const [paymentAccount, setPaymentAccount] = useState('')
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -198,6 +200,8 @@ function CompanyProfileForm({ userId }) {
       setVatNumber(data.vatNumber || '')
       setAddress(data.address || '')
       setContactPerson(data.contactPerson || '')
+      setDescription(data.description || '')
+      setPaymentAccount(data.paymentAccount || '')
       setLoading(false)
     })
   }, [userId])
@@ -207,7 +211,14 @@ function CompanyProfileForm({ userId }) {
     setSaving(true)
     setError(null)
     api
-      .put(`/users/${userId}/company-profile`, { companyName, vatNumber, address, contactPerson })
+      .put(`/users/${userId}/company-profile`, {
+        companyName,
+        vatNumber,
+        address,
+        contactPerson,
+        description,
+        paymentAccount,
+      })
       .then(() => setSaved(true))
       .catch((err) => setError(err.response?.data?.detail || err.message))
       .finally(() => setSaving(false))
@@ -231,6 +242,22 @@ function CompanyProfileForm({ userId }) {
         <TextField label="Partita IVA" value={vatNumber} onChange={(e) => setVatNumber(e.target.value)} fullWidth />
         <TextField label="Indirizzo" value={address} onChange={(e) => setAddress(e.target.value)} fullWidth />
         <TextField label="Referente" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} fullWidth />
+        <TextField
+          label="Descrizione"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          multiline
+          minRows={3}
+          fullWidth
+          helperText="Racconta il settore in cui operate e cosa fa la vostra azienda"
+        />
+        <TextField
+          label="Conto per l'invio dei pagamenti"
+          value={paymentAccount}
+          onChange={(e) => setPaymentAccount(e.target.value)}
+          fullWidth
+          helperText="IBAN o riferimento del conto da cui verranno effettuati i pagamenti"
+        />
         {error && <Alert severity="error">{error}</Alert>}
         <Button type="submit" variant="contained" disabled={saving}>
           Salva

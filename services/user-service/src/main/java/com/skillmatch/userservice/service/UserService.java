@@ -134,13 +134,14 @@ public interface UserService {
     void closeReport(UUID reportId);
 
     /**
-     * Admin: transitions a PROFESSIONAL from PENDING or SUSPENDED to VALIDATED.
-     * Publishes user.validated event.
+     * Admin: transitions a user (PROFESSIONAL or COMPANY) from PENDING or SUSPENDED to
+     * VALIDATED — required before a professional can apply to projects, or a company
+     * can publish one. Publishes user.validated event.
      *
      * @throws com.skillmatch.userservice.exception.UserNotFoundException       if user does not exist
-     * @throws com.skillmatch.userservice.exception.InvalidUserOperationException if user is not a PROFESSIONAL or is already VALIDATED
+     * @throws com.skillmatch.userservice.exception.InvalidUserOperationException if user is already VALIDATED
      */
-    UserResponse validateProfessional(UUID userId);
+    UserResponse validateUser(UUID userId);
 
     /**
      * Admin: suspends a user regardless of role (PENDING → SUSPENDED, VALIDATED → SUSPENDED).

@@ -15,4 +15,6 @@ public class CompanyProfileResponse {
     private String vatNumber;
     private String address;
     private String contactPerson;
+    private String description;
+    private String paymentAccount;
 }

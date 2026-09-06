@@ -35,6 +35,8 @@ import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useDisplayName } from '../hooks/useDisplayName'
+import { useReputation } from '../hooks/useReputation'
+import { reputationLevelInfo } from '../utils/format'
 import NotificationBell from './NotificationBell'
 import RequireProfile from './RequireProfile'
 
@@ -81,6 +83,7 @@ export default function AppLayout() {
   const [userMenuAnchor, setUserMenuAnchor] = useState(null)
   const { roles, username, keycloak, logout } = useAuth()
   const displayName = useDisplayName()
+  const reputation = useReputation()
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -189,11 +192,21 @@ export default function AppLayout() {
             <MenuIcon />
           </IconButton>
           {role && (
-            <Chip
-              label={role.charAt(0) + role.slice(1).toLowerCase()}
-              size="small"
-              sx={{ bgcolor: `${roleColor}1a`, color: roleColor, fontWeight: 700 }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip
+                label={role.charAt(0) + role.slice(1).toLowerCase()}
+                size="small"
+                sx={{ bgcolor: `${roleColor}1a`, color: roleColor, fontWeight: 700 }}
+              />
+              {reputation && (
+                <Chip
+                  label={reputationLevelInfo(reputation.level).label}
+                  color={reputationLevelInfo(reputation.level).color}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+            </Box>
           )}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <NotificationBell />

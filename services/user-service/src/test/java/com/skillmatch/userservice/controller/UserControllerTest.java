@@ -232,10 +232,26 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("COMPANY role → 403 Forbidden")
-        void getProfessionalProfile_wrongRole_forbidden() throws Exception {
-            mockMvc.perform(get("/api/v1/users/{userId}/professional-profile", UUID.randomUUID())
+        @DisplayName("COMPANY role → 200 OK (reviewing a candidature)")
+        void getProfessionalProfile_company_ok() throws Exception {
+            UUID userId = UUID.randomUUID();
+            ProfessionalProfileResponse response = new ProfessionalProfileResponse();
+            response.setUserId(userId);
+            response.setFirstName("Mario");
+
+            when(userService.getProfessionalProfile(userId)).thenReturn(response);
+
+            mockMvc.perform(get("/api/v1/users/{userId}/professional-profile", userId)
                             .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_COMPANY"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.firstName").value("Mario"));
+        }
+
+        @Test
+        @DisplayName("ADMIN role → 403 Forbidden (admin has its own endpoint)")
+        void getProfessionalProfile_admin_forbidden() throws Exception {
+            mockMvc.perform(get("/api/v1/users/{userId}/professional-profile", UUID.randomUUID())
+                            .with(jwt().authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"))))
                     .andExpect(status().isForbidden());
         }
     }

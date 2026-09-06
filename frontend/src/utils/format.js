@@ -47,3 +47,13 @@ export function contractStatusInfo(status) {
 export function shortId(uuid) {
   return uuid ? uuid.slice(0, 8) : ''
 }
+
+export const REPUTATION_LEVEL_LABEL = {
+  JUNIOR: { label: 'Junior', color: 'default' },
+  AFFIDABILE: { label: 'Affidabile', color: 'info' },
+  TOP_PERFORMER: { label: 'Top Performer', color: 'success' },
+}
+
+export function reputationLevelInfo(level) {
+  return REPUTATION_LEVEL_LABEL[level] ?? { label: level, color: 'default' }
+}

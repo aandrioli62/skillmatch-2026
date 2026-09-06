@@ -602,47 +602,50 @@ class UserServiceImplTest {
     }
 
     // =========================================================================
-    // validateProfessional
+    // validateUser
     // =========================================================================
 
     @Nested
-    @DisplayName("validateProfessional()")
-    class ValidateProfessional {
+    @DisplayName("validateUser()")
+    class ValidateUser {
 
         @Test
         @DisplayName("PENDING professional: transitions to VALIDATED and publishes event")
-        void validateProfessional_success() {
+        void validateUser_professional_success() {
             when(userRepository.findById(userId)).thenReturn(Optional.of(professionalUser));
             when(userRepository.save(professionalUser)).thenReturn(professionalUser);
             when(userMapper.toResponse(professionalUser)).thenReturn(userResponse);
 
-            userService.validateProfessional(userId);
+            userService.validateUser(userId);
 
             assertThat(professionalUser.getStatus()).isEqualTo(UserStatus.VALIDATED);
             verify(eventPublisher).publishUserValidated(any(UserValidatedEvent.class));
         }
 
         @Test
-        @DisplayName("already VALIDATED professional: throws InvalidUserOperationException")
-        void validateProfessional_alreadyValidated_throws() {
+        @DisplayName("PENDING company: also transitions to VALIDATED and publishes event")
+        void validateUser_company_success() {
+            when(userRepository.findById(userId)).thenReturn(Optional.of(companyUser));
+            when(userRepository.save(companyUser)).thenReturn(companyUser);
+            when(userMapper.toResponse(companyUser)).thenReturn(userResponse);
+
+            userService.validateUser(userId);
+
+            assertThat(companyUser.getStatus()).isEqualTo(UserStatus.VALIDATED);
+            verify(eventPublisher).publishUserValidated(any(UserValidatedEvent.class));
+        }
+
+        @Test
+        @DisplayName("already VALIDATED user: throws InvalidUserOperationException")
+        void validateUser_alreadyValidated_throws() {
             professionalUser.setStatus(UserStatus.VALIDATED);
             when(userRepository.findById(userId)).thenReturn(Optional.of(professionalUser));
 
-            assertThatThrownBy(() -> userService.validateProfessional(userId))
+            assertThatThrownBy(() -> userService.validateUser(userId))
                     .isInstanceOf(InvalidUserOperationException.class)
                     .hasMessageContaining("already in VALIDATED status");
 
             verifyNoInteractions(eventPublisher);
-        }
-
-        @Test
-        @DisplayName("COMPANY user: throws InvalidUserOperationException")
-        void validateProfessional_companyRole_throws() {
-            when(userRepository.findById(userId)).thenReturn(Optional.of(companyUser));
-
-            assertThatThrownBy(() -> userService.validateProfessional(userId))
-                    .isInstanceOf(InvalidUserOperationException.class)
-                    .hasMessageContaining("Only PROFESSIONAL");
         }
     }
 

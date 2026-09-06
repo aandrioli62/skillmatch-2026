@@ -1,6 +1,5 @@
 package com.skillmatch.projectservice.model;
 
-import com.skillmatch.projectservice.model.enums.ReputationLevel;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,8 +23,4 @@ public class ProjectRequirement {
 
     @Column(name = "skill_name", nullable = false, length = 100)
     private String skillName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "min_reputation_level", length = 20)
-    private ReputationLevel minReputationLevel;
 }

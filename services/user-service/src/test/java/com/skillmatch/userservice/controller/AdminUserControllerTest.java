@@ -178,16 +178,32 @@ class AdminUserControllerTest {
 
     @Nested
     @DisplayName("POST /api/v1/admin/users/{userId}/validate")
-    class ValidateProfessional {
+    class ValidateUser {
 
         @Test
         @DisplayName("ADMIN validates pending professional → 200 OK")
-        void validateProfessional_admin_ok() throws Exception {
+        void validateUser_professional_admin_ok() throws Exception {
             UUID userId = UUID.randomUUID();
             UserResponse validated = buildUserResponse(UserRole.PROFESSIONAL, UserStatus.VALIDATED);
             validated.setId(userId);
 
-            when(userService.validateProfessional(userId)).thenReturn(validated);
+            when(userService.validateUser(userId)).thenReturn(validated);
+
+            mockMvc.perform(post("/api/v1/admin/users/{userId}/validate", userId)
+                            .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.status").value("VALIDATED"))
+                    .andExpect(jsonPath("$.id").value(userId.toString()));
+        }
+
+        @Test
+        @DisplayName("ADMIN validates pending company → 200 OK")
+        void validateUser_company_admin_ok() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UserResponse validated = buildUserResponse(UserRole.COMPANY, UserStatus.VALIDATED);
+            validated.setId(userId);
+
+            when(userService.validateUser(userId)).thenReturn(validated);
 
             mockMvc.perform(post("/api/v1/admin/users/{userId}/validate", userId)
                             .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
@@ -198,9 +214,9 @@ class AdminUserControllerTest {
 
         @Test
         @DisplayName("user not found → 404 Not Found")
-        void validateProfessional_notFound() throws Exception {
+        void validateUser_notFound() throws Exception {
             UUID unknown = UUID.randomUUID();
-            when(userService.validateProfessional(unknown)).thenThrow(new UserNotFoundException(unknown));
+            when(userService.validateUser(unknown)).thenThrow(new UserNotFoundException(unknown));
 
             mockMvc.perform(post("/api/v1/admin/users/{userId}/validate", unknown)
                             .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
@@ -210,9 +226,9 @@ class AdminUserControllerTest {
 
         @Test
         @DisplayName("already validated → 422 Unprocessable Entity")
-        void validateProfessional_alreadyValidated() throws Exception {
+        void validateUser_alreadyValidated() throws Exception {
             UUID userId = UUID.randomUUID();
-            when(userService.validateProfessional(userId))
+            when(userService.validateUser(userId))
                     .thenThrow(new InvalidUserOperationException("already in VALIDATED status"));
 
             mockMvc.perform(post("/api/v1/admin/users/{userId}/validate", userId)
@@ -223,7 +239,7 @@ class AdminUserControllerTest {
 
         @Test
         @DisplayName("non-ADMIN role → 403 Forbidden")
-        void validateProfessional_nonAdmin_forbidden() throws Exception {
+        void validateUser_nonAdmin_forbidden() throws Exception {
             UUID userId = UUID.randomUUID();
 
             mockMvc.perform(post("/api/v1/admin/users/{userId}/validate", userId)

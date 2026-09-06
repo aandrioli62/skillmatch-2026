@@ -32,4 +32,10 @@ public class CompanyProfile {
 
     @Column(name = "contact_person", length = 200)
     private String contactPerson;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "payment_account")
+    private String paymentAccount;
 }

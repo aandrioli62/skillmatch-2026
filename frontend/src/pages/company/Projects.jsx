@@ -12,7 +12,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  MenuItem,
   Snackbar,
   Stack,
   TextField,
@@ -23,16 +22,14 @@ import { useEffect, useState } from 'react'
 import DataSection from '../../components/DataSection'
 import SkillPicker from '../../components/SkillPicker'
 import api from '../../services/api'
-import { candidatureStatusInfo, formatDate, projectStatusInfo, shortId } from '../../utils/format'
-
-const REPUTATION_LEVELS = ['JUNIOR', 'AFFIDABILE', 'TOP_PERFORMER']
+import { candidatureStatusInfo, formatDate, projectStatusInfo, reputationLevelInfo, shortId } from '../../utils/format'
 
 const EMPTY_FORM = {
   title: '',
   description: '',
   durationDays: '',
   budget: '',
-  requirements: [{ skillName: '', minReputationLevel: '' }],
+  requirements: [{ skillName: '' }],
 }
 
 export default function CompanyProjects() {
@@ -92,7 +89,17 @@ export default function CompanyProjects() {
     setActionError(null)
     api
       .get(`/projects/${project.id}/candidatures`)
-      .then((res) => setCandidates(res.data))
+      .then((res) => {
+        const candidatures = res.data
+        Promise.all(
+          candidatures.map((c) =>
+            api
+              .get(`/users/${c.professionalId}/professional-profile`)
+              .then((profileRes) => ({ ...c, professionalProfile: profileRes.data }))
+              .catch(() => ({ ...c, professionalProfile: null })),
+          ),
+        ).then(setCandidates)
+      })
       .catch((err) => setCandidatesError(err.message))
   }
 
@@ -135,7 +142,7 @@ export default function CompanyProjects() {
   const addRequirement = () => {
     setForm((prev) => ({
       ...prev,
-      requirements: [...prev.requirements, { skillName: '', minReputationLevel: '' }],
+      requirements: [...prev.requirements, { skillName: '' }],
     }))
   }
 
@@ -154,10 +161,7 @@ export default function CompanyProjects() {
         budget: Number(form.budget),
         requirements: form.requirements
           .filter((r) => r.skillName.trim())
-          .map((r) => ({
-            skillName: r.skillName,
-            minReputationLevel: r.minReputationLevel || null,
-          })),
+          .map((r) => ({ skillName: r.skillName })),
       })
       .then(() => {
         setMessage('Progetto creato in bozza.')
@@ -234,13 +238,23 @@ export default function CompanyProjects() {
             <List disablePadding>
               {candidates?.map((candidate) => {
                 const statusInfo = candidatureStatusInfo(candidate.status)
+                const profile = candidate.professionalProfile
+                const fullName = profile && (profile.firstName || profile.lastName)
+                  ? `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim()
+                  : null
+                const reputationInfo = profile?.reputationLevel ? reputationLevelInfo(profile.reputationLevel) : null
                 return (
                   <ListItem key={candidate.id} divider sx={{ alignItems: 'flex-start' }}>
                     <ListItemText
                       primary={
-                        <Tooltip title={candidate.professionalId}>
-                          <span>Professionista #{shortId(candidate.professionalId)}</span>
-                        </Tooltip>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Tooltip title={candidate.professionalId}>
+                            <span>{fullName ?? `Professionista #${shortId(candidate.professionalId)}`}</span>
+                          </Tooltip>
+                          {reputationInfo && (
+                            <Chip label={reputationInfo.label} color={reputationInfo.color} size="small" variant="outlined" />
+                          )}
+                        </Stack>
                       }
                       secondary={
                         <>
@@ -354,20 +368,6 @@ export default function CompanyProjects() {
                   onChange={(newValue) => updateRequirement(index, 'skillName', newValue)}
                   sx={{ flex: 1 }}
                 />
-                <TextField
-                  select
-                  label="Livello minimo"
-                  value={req.minReputationLevel}
-                  onChange={(e) => updateRequirement(index, 'minReputationLevel', e.target.value)}
-                  sx={{ minWidth: 160 }}
-                >
-                  <MenuItem value="">Nessuno</MenuItem>
-                  {REPUTATION_LEVELS.map((level) => (
-                    <MenuItem key={level} value={level}>
-                      {level}
-                    </MenuItem>
-                  ))}
-                </TextField>
                 <IconButton
                   onClick={() => removeRequirement(index)}
                   disabled={form.requirements.length === 1}
