@@ -3,6 +3,11 @@ export function formatDate(isoString) {
   return new Date(isoString).toLocaleDateString('it-IT')
 }
 
+export function formatDateTime(isoString) {
+  if (!isoString) return ''
+  return new Date(isoString).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })
+}
+
 export const CANDIDATURE_STATUS_LABEL = {
   PENDING: { label: 'In attesa', color: 'warning' },
   ACCEPTED: { label: 'Accettata', color: 'success' },

@@ -35,6 +35,7 @@ import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useDisplayName } from '../hooks/useDisplayName'
+import NotificationBell from './NotificationBell'
 import RequireProfile from './RequireProfile'
 
 const DRAWER_WIDTH = 260
@@ -194,22 +195,25 @@ export default function AppLayout() {
               sx={{ bgcolor: `${roleColor}1a`, color: roleColor, fontWeight: 700 }}
             />
           )}
-          <Box
-            sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }}
-            onClick={(e) => setUserMenuAnchor(e.currentTarget)}
-          >
-            <Typography variant="body2">
-              {displayName ? `Bentornato, ${displayName}` : 'Bentornato'}
-            </Typography>
-            <Avatar
-              sx={{
-                width: 32,
-                height: 32,
-                background: 'linear-gradient(135deg, #4f46e5, #14b8a6)',
-              }}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <NotificationBell />
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }}
+              onClick={(e) => setUserMenuAnchor(e.currentTarget)}
             >
-              {(displayName || username)?.charAt(0).toUpperCase()}
-            </Avatar>
+              <Typography variant="body2">
+                {displayName ? `Bentornato, ${displayName}` : 'Bentornato'}
+              </Typography>
+              <Avatar
+                sx={{
+                  width: 32,
+                  height: 32,
+                  background: 'linear-gradient(135deg, #4f46e5, #14b8a6)',
+                }}
+              >
+                {(displayName || username)?.charAt(0).toUpperCase()}
+              </Avatar>
+            </Box>
           </Box>
           <Menu
             anchorEl={userMenuAnchor}

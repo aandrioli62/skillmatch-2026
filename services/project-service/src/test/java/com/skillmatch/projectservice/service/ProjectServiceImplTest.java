@@ -9,6 +9,7 @@ import com.skillmatch.projectservice.dto.response.CandidatureResponse;
 import com.skillmatch.projectservice.dto.response.ProjectRequirementResponse;
 import com.skillmatch.projectservice.dto.response.ProjectResponse;
 import com.skillmatch.projectservice.event.CandidatureAcceptedEvent;
+import com.skillmatch.projectservice.event.CandidatureSubmittedEvent;
 import com.skillmatch.projectservice.event.ProjectCompletedEvent;
 import com.skillmatch.projectservice.event.ProjectPublishedEvent;
 import com.skillmatch.projectservice.exception.CandidatureNotFoundException;
@@ -347,6 +348,14 @@ class ProjectServiceImplTest {
 
             assertThat(newCandidature.getProject()).isSameAs(openProject);
             assertThat(newCandidature.getProfessionalId()).isEqualTo(professionalId);
+
+            ArgumentCaptor<CandidatureSubmittedEvent> captor = ArgumentCaptor.forClass(CandidatureSubmittedEvent.class);
+            verify(eventPublisher).publishCandidatureSubmitted(captor.capture());
+            CandidatureSubmittedEvent.Data eventData = captor.getValue().getData();
+            assertThat(eventData.getProjectId()).isEqualTo(projectId);
+            assertThat(eventData.getProjectTitle()).isEqualTo(openProject.getTitle());
+            assertThat(eventData.getProfessionalId()).isEqualTo(professionalId);
+            assertThat(eventData.getCompanyId()).isEqualTo(companyId);
         }
 
         @Test
@@ -359,6 +368,7 @@ class ProjectServiceImplTest {
                     .hasMessageContaining("not open");
 
             verifyNoInteractions(userServiceClient);
+            verify(eventPublisher, never()).publishCandidatureSubmitted(any());
         }
 
         @Test

@@ -2,6 +2,7 @@ package com.skillmatch.projectservice.service;
 
 import com.skillmatch.projectservice.config.RabbitMQConfig;
 import com.skillmatch.projectservice.event.CandidatureAcceptedEvent;
+import com.skillmatch.projectservice.event.CandidatureSubmittedEvent;
 import com.skillmatch.projectservice.event.ProjectCompletedEvent;
 import com.skillmatch.projectservice.event.ProjectPublishedEvent;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,19 @@ public class EventPublisherService {
                 RabbitMQConfig.ROUTING_KEY_PROJECT_PUBLISHED,
                 event);
         log.info("Published project.published event: projectId={}", event.getData().getProjectId());
+    }
+
+    /**
+     * Publishes a {@code candidature.submitted} event to the {@code skillmatch.events} exchange.
+     * Consumed by notification-service to alert the company of a new candidature.
+     */
+    public void publishCandidatureSubmitted(CandidatureSubmittedEvent event) {
+        amqpTemplate.convertAndSend(
+                RabbitMQConfig.EXCHANGE,
+                RabbitMQConfig.ROUTING_KEY_CANDIDATURE_SUBMITTED,
+                event);
+        log.info("Published candidature.submitted event: candidatureId={}, projectId={}",
+                event.getData().getCandidatureId(), event.getData().getProjectId());
     }
 
     /**

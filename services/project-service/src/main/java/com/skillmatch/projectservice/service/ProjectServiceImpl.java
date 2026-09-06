@@ -7,6 +7,7 @@ import com.skillmatch.projectservice.dto.request.ProjectCreateRequest;
 import com.skillmatch.projectservice.dto.response.CandidatureResponse;
 import com.skillmatch.projectservice.dto.response.ProjectResponse;
 import com.skillmatch.projectservice.event.CandidatureAcceptedEvent;
+import com.skillmatch.projectservice.event.CandidatureSubmittedEvent;
 import com.skillmatch.projectservice.event.ProjectCompletedEvent;
 import com.skillmatch.projectservice.event.ProjectPublishedEvent;
 import com.skillmatch.projectservice.exception.CandidatureNotFoundException;
@@ -163,6 +164,17 @@ public class ProjectServiceImpl implements ProjectService {
         candidature.setProject(project);
         candidature.setProfessionalId(professionalId);
         candidature = candidatureRepository.save(candidature);
+
+        eventPublisher.publishCandidatureSubmitted(
+                CandidatureSubmittedEvent.builder()
+                        .data(CandidatureSubmittedEvent.Data.builder()
+                                .candidatureId(candidature.getId())
+                                .projectId(projectId)
+                                .projectTitle(project.getTitle())
+                                .professionalId(professionalId)
+                                .companyId(project.getCompanyId())
+                                .build())
+                        .build());
 
         log.info("Candidature submitted: candidatureId={}, projectId={}, professionalId={}",
                 candidature.getId(), projectId, professionalId);

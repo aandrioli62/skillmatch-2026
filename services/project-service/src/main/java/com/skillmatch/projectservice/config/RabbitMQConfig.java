@@ -17,6 +17,7 @@ public class RabbitMQConfig {
 
     // Routing keys this service publishes
     public static final String ROUTING_KEY_PROJECT_PUBLISHED = "project.published";
+    public static final String ROUTING_KEY_CANDIDATURE_SUBMITTED = "candidature.submitted";
     public static final String ROUTING_KEY_CANDIDATURE_ACCEPTED = "candidature.accepted";
     public static final String ROUTING_KEY_PROJECT_COMPLETED = "project.completed";
 

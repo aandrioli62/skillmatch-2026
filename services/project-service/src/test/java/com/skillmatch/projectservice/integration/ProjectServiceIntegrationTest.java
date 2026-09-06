@@ -164,6 +164,7 @@ class ProjectServiceIntegrationTest {
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andReturn().getResponse().getContentAsString();
         UUID candidatureId = UUID.fromString(objectMapper.readTree(applyResponse).get("id").asText());
+        assertThat(receiveEventType()).isEqualTo("candidature.submitted");
 
         // A second candidature for the same pair is rejected outright.
         when(userServiceClient.resolveCurrentUserId()).thenReturn(professionalId);

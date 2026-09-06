@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,5 +35,15 @@ public class NotificationController {
     public ResponseEntity<List<NotificationResponse>> listMine() {
         UUID recipientId = userServiceClient.resolveCurrentUserId();
         return ResponseEntity.ok(notificationService.listMine(recipientId));
+    }
+
+    @Operation(
+            summary = "Mark a notification as read",
+            description = "Marks the given notification as read. The caller must be its recipient."
+    )
+    @PatchMapping("/{id}/read")
+    public ResponseEntity<NotificationResponse> markAsRead(@PathVariable String id) {
+        UUID recipientId = userServiceClient.resolveCurrentUserId();
+        return ResponseEntity.ok(notificationService.markAsRead(id, recipientId));
     }
 }

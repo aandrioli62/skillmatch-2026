@@ -2,6 +2,7 @@ package com.skillmatch.notificationservice.service;
 
 import com.skillmatch.notificationservice.dto.response.NotificationResponse;
 import com.skillmatch.notificationservice.event.IncomingEvent;
+import com.skillmatch.notificationservice.exception.NotificationNotFoundException;
 import com.skillmatch.notificationservice.mapper.NotificationMapper;
 import com.skillmatch.notificationservice.model.Notification;
 import com.skillmatch.notificationservice.repository.NotificationRepository;
@@ -14,12 +15,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -61,6 +65,20 @@ class NotificationServiceImplTest {
             assertThat(captor.getValue().getRecipientId()).isEqualTo(userId);
             assertThat(captor.getValue().getEventType()).isEqualTo("user.registered");
             assertThat(captor.getValue().getMessage()).containsIgnoringCase("benvenuto");
+        }
+
+        @Test
+        @DisplayName("candidature.submitted: saves one notification for the company, naming the project")
+        void candidatureSubmitted_singleRecipient() {
+            UUID companyId = UUID.randomUUID();
+            notificationService.processEvent(eventOf("candidature.submitted", Map.of(
+                    "companyId", companyId.toString(),
+                    "projectTitle", "Consulenza UI/UX")));
+
+            ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
+            verify(notificationRepository).save(captor.capture());
+            assertThat(captor.getValue().getRecipientId()).isEqualTo(companyId);
+            assertThat(captor.getValue().getMessage()).contains("Consulenza UI/UX");
         }
 
         @Test
@@ -140,6 +158,51 @@ class NotificationServiceImplTest {
             List<NotificationResponse> result = notificationService.listMine(recipientId);
 
             assertThat(result).hasSize(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("markAsRead()")
+    class MarkAsRead {
+
+        @Test
+        @DisplayName("owned notification: marks it read and returns the mapped response")
+        void markAsRead_owned_marksRead() {
+            UUID recipientId = UUID.randomUUID();
+            Notification notification = new Notification();
+            notification.setRecipientId(recipientId);
+            when(notificationRepository.findById("n1")).thenReturn(Optional.of(notification));
+            when(notificationRepository.save(notification)).thenReturn(notification);
+            when(notificationMapper.toResponse(notification)).thenReturn(new NotificationResponse());
+
+            notificationService.markAsRead("n1", recipientId);
+
+            assertThat(notification.isRead()).isTrue();
+            verify(notificationRepository).save(notification);
+        }
+
+        @Test
+        @DisplayName("unknown id: throws NotificationNotFoundException")
+        void markAsRead_notFound_throws() {
+            when(notificationRepository.findById("missing")).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> notificationService.markAsRead("missing", UUID.randomUUID()))
+                    .isInstanceOf(NotificationNotFoundException.class);
+
+            verify(notificationRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("notification belongs to another recipient: throws AccessDeniedException")
+        void markAsRead_notOwner_throws() {
+            Notification notification = new Notification();
+            notification.setRecipientId(UUID.randomUUID());
+            when(notificationRepository.findById("n1")).thenReturn(Optional.of(notification));
+
+            assertThatThrownBy(() -> notificationService.markAsRead("n1", UUID.randomUUID()))
+                    .isInstanceOf(AccessDeniedException.class);
+
+            verify(notificationRepository, never()).save(any());
         }
     }
 }

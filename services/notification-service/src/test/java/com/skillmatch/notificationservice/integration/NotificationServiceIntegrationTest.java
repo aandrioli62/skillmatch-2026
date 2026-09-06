@@ -29,6 +29,7 @@ import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -92,6 +93,21 @@ class NotificationServiceIntegrationTest {
     }
 
     @Test
+    void candidatureSubmitted_producesNotificationForCompany() {
+        UUID companyId = UUID.randomUUID();
+        publish("candidature.submitted", "candidature.submitted", Map.of(
+                "companyId", companyId.toString(),
+                "projectTitle", "Consulenza UI/UX"));
+
+        List<Notification> found = await().atMost(Duration.ofSeconds(10))
+                .until(() -> notificationRepository.findByRecipientIdOrderByCreatedAtDesc(companyId),
+                        list -> !list.isEmpty());
+
+        assertThat(found).hasSize(1);
+        assertThat(found.get(0).getMessage()).contains("Consulenza UI/UX");
+    }
+
+    @Test
     void candidatureAccepted_producesNotificationsForBothParties() {
         UUID professionalId = UUID.randomUUID();
         UUID companyId = UUID.randomUUID();
@@ -126,6 +142,26 @@ class NotificationServiceIntegrationTest {
         mockMvc.perform(get("/api/v1/notifications/mine").with(jwt().authorities(PROFESSIONAL)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].eventType").value("payment.completed"));
+    }
+
+    @Test
+    void markAsRead_thenGetMine_reflectsReadState() throws Exception {
+        UUID professionalId = UUID.randomUUID();
+        publish("user.registered", "user.registered", Map.of("userId", professionalId.toString(), "email", "test2@skillmatch.test"));
+
+        await().atMost(Duration.ofSeconds(10))
+                .until(() -> notificationRepository.findByRecipientIdOrderByCreatedAtDesc(professionalId),
+                        list -> !list.isEmpty());
+        String notificationId = notificationRepository.findByRecipientIdOrderByCreatedAtDesc(professionalId).get(0).getId();
+
+        when(userServiceClient.resolveCurrentUserId()).thenReturn(professionalId);
+        mockMvc.perform(patch("/api/v1/notifications/" + notificationId + "/read").with(jwt().authorities(PROFESSIONAL)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.read").value(true));
+
+        mockMvc.perform(get("/api/v1/notifications/mine").with(jwt().authorities(PROFESSIONAL)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].read").value(true));
     }
 
     @Test

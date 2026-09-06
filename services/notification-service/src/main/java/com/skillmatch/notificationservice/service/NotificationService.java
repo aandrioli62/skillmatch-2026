@@ -21,4 +21,10 @@ public interface NotificationService {
      * Returns all notifications addressed to the given user, most recent first.
      */
     List<NotificationResponse> listMine(UUID recipientId);
+
+    /**
+     * Marks the given notification as read, on behalf of the given recipient.
+     * Throws if the notification does not exist, or does not belong to the recipient.
+     */
+    NotificationResponse markAsRead(String notificationId, UUID recipientId);
 }

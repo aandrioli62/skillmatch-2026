@@ -2,11 +2,13 @@ package com.skillmatch.notificationservice.service;
 
 import com.skillmatch.notificationservice.dto.response.NotificationResponse;
 import com.skillmatch.notificationservice.event.IncomingEvent;
+import com.skillmatch.notificationservice.exception.NotificationNotFoundException;
 import com.skillmatch.notificationservice.mapper.NotificationMapper;
 import com.skillmatch.notificationservice.model.Notification;
 import com.skillmatch.notificationservice.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -53,6 +55,20 @@ public class NotificationServiceImpl implements NotificationService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public NotificationResponse markAsRead(String notificationId, UUID recipientId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new NotificationNotFoundException(notificationId));
+
+        if (!recipientId.equals(notification.getRecipientId())) {
+            throw new AccessDeniedException(
+                    "Notification with id=" + notificationId + " does not belong to the caller");
+        }
+
+        notification.setRead(true);
+        return notificationMapper.toResponse(notificationRepository.save(notification));
+    }
+
     // =========================================================================
     // Event -> recipients/message mapping
     // =========================================================================
@@ -70,6 +86,10 @@ public class NotificationServiceImpl implements NotificationService {
             case "project.published" -> List.of(new Recipient(
                     uuid(data, "companyId"),
                     "Il tuo progetto \"" + data.get("title") + "\" e' stato pubblicato ed e' visibile ai professionisti."));
+
+            case "candidature.submitted" -> List.of(new Recipient(
+                    uuid(data, "companyId"),
+                    "Hai ricevuto una nuova candidatura per il progetto \"" + data.get("projectTitle") + "\"."));
 
             case "candidature.accepted" -> List.of(
                     new Recipient(uuid(data, "professionalId"), "La tua candidatura e' stata accettata!"),

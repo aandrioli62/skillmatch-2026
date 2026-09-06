@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,6 +57,28 @@ class NotificationControllerTest {
     @DisplayName("no token → 401 Unauthorized")
     void listMine_noToken_unauthorized() throws Exception {
         mockMvc.perform(get("/api/v1/notifications/mine"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("PATCH /{id}/read: authenticated caller → 200 OK with the updated notification")
+    void markAsRead_success() throws Exception {
+        UUID recipientId = UUID.randomUUID();
+        NotificationResponse notification = new NotificationResponse();
+        notification.setRead(true);
+
+        when(userServiceClient.resolveCurrentUserId()).thenReturn(recipientId);
+        when(notificationService.markAsRead("n1", recipientId)).thenReturn(notification);
+
+        mockMvc.perform(patch("/api/v1/notifications/n1/read").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.read").value(true));
+    }
+
+    @Test
+    @DisplayName("PATCH /{id}/read: no token → 401 Unauthorized")
+    void markAsRead_noToken_unauthorized() throws Exception {
+        mockMvc.perform(patch("/api/v1/notifications/n1/read"))
                 .andExpect(status().isUnauthorized());
     }
 }
