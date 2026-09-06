@@ -34,7 +34,7 @@ spring:
         - id: payment-service
           uri: http://${PAYMENT_SERVICE_HOST:payment-service}:${PAYMENT_SERVICE_PORT:8084}
           predicates:
-            - Path=/api/v1/payments/**, /api/v1/transactions/**, /api/v1/admin/commission-config/**
+            - Path=/api/v1/payments/**, /api/v1/transactions/**, /api/v1/admin/commission-config/**, /api/v1/commission-config/**
           filters:
             - name: CircuitBreaker
               args:

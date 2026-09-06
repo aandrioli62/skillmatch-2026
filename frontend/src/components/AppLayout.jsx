@@ -34,6 +34,7 @@ import {
 import { useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useCurrentUser } from '../hooks/useCurrentUser'
 import { useDisplayName } from '../hooks/useDisplayName'
 import { useReputation } from '../hooks/useReputation'
 import { reputationLevelInfo } from '../utils/format'
@@ -82,13 +83,16 @@ export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuAnchor, setUserMenuAnchor] = useState(null)
   const { roles, username, keycloak, logout } = useAuth()
+  const { user } = useCurrentUser()
   const displayName = useDisplayName()
   const reputation = useReputation()
   const location = useLocation()
   const navigate = useNavigate()
 
   const role = primaryRole(roles)
-  const navItems = role ? NAV_ITEMS[role] : []
+  // A suspended account can't do anything on the platform (see RequireProfile,
+  // which blocks every page's content) — the nav links would just be dead ends.
+  const navItems = role && user?.status !== 'SUSPENDED' ? NAV_ITEMS[role] : []
 
   const roleColor = role ? ROLE_COLOR[role] : '#4f46e5'
 

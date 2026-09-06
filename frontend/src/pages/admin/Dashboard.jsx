@@ -27,7 +27,7 @@ export default function AdminDashboard() {
     api
       .get('/admin/users', { params: { size: 100 } })
       .then((res) => {
-        const pending = res.data.content.filter((u) => u.role === 'PROFESSIONAL' && u.status === 'PENDING')
+        const pending = res.data.content.filter((u) => u.status === 'PENDING')
         setPendingCount(pending.length)
       })
       .catch(() => setPendingCount('—'))

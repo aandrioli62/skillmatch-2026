@@ -30,6 +30,7 @@ export default function ProfessionalProjects() {
   const [projectsError, setProjectsError] = useState(null)
 
   const [candidatures, setCandidatures] = useState(null)
+  const [skills, setSkills] = useState(null)
 
   const [applyTarget, setApplyTarget] = useState(null)
   const [coverLetter, setCoverLetter] = useState('')
@@ -51,7 +52,16 @@ export default function ProfessionalProjects() {
 
   useEffect(loadData, [])
 
+  useEffect(() => {
+    if (!user) return
+    api
+      .get(`/users/${user.id}/professional-profile`)
+      .then((res) => setSkills(res.data.skills ?? []))
+      .catch(() => setSkills([]))
+  }, [user])
+
   const candidatureByProjectId = new Map((candidatures ?? []).map((c) => [c.projectId, c]))
+  const skillNames = new Set((skills ?? []).map((s) => s.skillName.toLowerCase()))
 
   const openApplyDialog = (project) => {
     setApplyTarget(project)
@@ -115,9 +125,18 @@ export default function ProfessionalProjects() {
                         Budget: €{project.budget} — {project.durationDays} giorni
                       </Typography>
                       <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', gap: 0.5 }}>
-                        {project.requirements?.map((req) => (
-                          <Chip key={req.id} label={req.skillName} size="small" variant="outlined" />
-                        ))}
+                        {project.requirements?.map((req) => {
+                          const isMatch = skillNames.has(req.skillName.toLowerCase())
+                          return (
+                            <Chip
+                              key={req.id}
+                              label={req.skillName}
+                              size="small"
+                              color={isMatch ? 'success' : 'default'}
+                              variant={isMatch ? 'filled' : 'outlined'}
+                            />
+                          )
+                        })}
                       </Stack>
                     </>
                   }

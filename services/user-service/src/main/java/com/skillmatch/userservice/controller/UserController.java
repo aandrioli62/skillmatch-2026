@@ -9,6 +9,7 @@ import com.skillmatch.userservice.dto.response.CompanyProfileResponse;
 import com.skillmatch.userservice.dto.response.PortfolioItemResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalSkillResponse;
+import com.skillmatch.userservice.dto.response.ReportResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
 import com.skillmatch.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -136,6 +137,26 @@ public class UserController {
             @Parameter(description = "User UUID", required = true)
             @PathVariable("userId") UUID userId) {
         return ResponseEntity.ok(userService.getProfessionalProfile(userId));
+    }
+
+    @Operation(
+            summary = "List reports filed against a user",
+            description = "Returns every report (open and closed) filed against the given user, most recent "
+                    + "first — used by a company reviewing a candidature to see the applicant's standing, the "
+                    + "same information an admin sees before validating or suspending. Closing a report is still "
+                    + "admin-only."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Reports returned"),
+            @ApiResponse(responseCode = "403", description = "Caller does not have PROFESSIONAL or COMPANY role",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @GetMapping("/{userId}/reports")
+    @PreAuthorize("hasRole('PROFESSIONAL') or hasRole('COMPANY')")
+    public ResponseEntity<List<ReportResponse>> listReportsForUser(
+            @Parameter(description = "User UUID", required = true)
+            @PathVariable("userId") UUID userId) {
+        return ResponseEntity.ok(userService.listReportsForUser(userId));
     }
 
     @Operation(

@@ -28,17 +28,24 @@ const STATUS_COLOR = {
 // skills with certification links, portfolio, payout account), plus a second
 // tab with every report filed against this user (professional or company),
 // so the admin can judge whether they add up to a suspension.
-export default function UserDetailDialog({ user, onClose, onValidate, onSuspend, onDeactivate }) {
+//
+// Also reused, read-only, when a company reviews a candidature: same two tabs,
+// but backed by the non-admin endpoints (a company isn't allowed the admin-only
+// ones), and with the validate/suspend/deactivate/archive actions hidden —
+// a company can look, not act.
+export default function UserDetailDialog({ user, onClose, onValidate, onSuspend, onDeactivate, readOnly = false }) {
   const [tab, setTab] = useState(0)
   const [profile, setProfile] = useState(null)
   const [reports, setReports] = useState(null)
+
+  const basePath = readOnly ? '/users' : '/admin/users'
 
   useEffect(() => {
     if (!user) return undefined
     let cancelled = false
 
     api
-      .get(`/admin/users/${user.id}/reports`)
+      .get(`${basePath}/${user.id}/reports`)
       .then((res) => {
         if (!cancelled) setReports(res.data)
       })
@@ -46,14 +53,15 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend,
         if (!cancelled) setReports([])
       })
 
-    if (user.role !== 'PROFESSIONAL') {
+    if (user.role !== 'PROFESSIONAL' && user.role !== 'COMPANY') {
       return () => {
         cancelled = true
       }
     }
 
+    const profileEndpoint = user.role === 'PROFESSIONAL' ? 'professional-profile' : 'company-profile'
     api
-      .get(`/admin/users/${user.id}/professional-profile`)
+      .get(`${basePath}/${user.id}/${profileEndpoint}`)
       .then((res) => {
         if (!cancelled) setProfile(res.data)
       })
@@ -64,7 +72,7 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend,
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [user, basePath])
 
   const closeReport = (reportId) => {
     api.post(`/admin/reports/${reportId}/close`).then(() => {
@@ -72,7 +80,8 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend,
     })
   }
 
-  const loading = Boolean(user) && user.role === 'PROFESSIONAL' && profile === null
+  const hasProfile = user && (user.role === 'PROFESSIONAL' || user.role === 'COMPANY')
+  const loading = Boolean(hasProfile) && profile === null
 
   if (!user) return null
 
@@ -82,7 +91,11 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend,
     <Dialog open={Boolean(user)} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {profile ? `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim() || user.email : user.email}
+          {profile
+            ? user.role === 'COMPANY'
+              ? profile.companyName || user.email
+              : `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim() || user.email
+            : user.email}
           <Chip label={user.role} size="small" variant="outlined" />
           <Chip label={user.status} color={STATUS_COLOR[user.status] ?? 'default'} size="small" />
         </Box>
@@ -96,13 +109,13 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend,
       <DialogContent dividers>
         {tab === 0 && (
           <>
-            {user.role !== 'PROFESSIONAL' && (
+            {!hasProfile && (
               <Typography variant="body2" color="text.secondary">
                 {user.email}
               </Typography>
             )}
 
-            {user.role === 'PROFESSIONAL' && loading && (
+            {hasProfile && loading && (
               <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
                 <CircularProgress size={28} />
               </Box>
@@ -188,6 +201,39 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend,
                 </Box>
               </Stack>
             )}
+
+            {user.role === 'COMPANY' && !loading && profile && (
+              <Stack spacing={2}>
+                <Typography variant="body2" color="text.secondary">
+                  {user.email}
+                </Typography>
+
+                <Box>
+                  <Typography variant="subtitle2">Partita IVA</Typography>
+                  <Typography variant="body2">{profile.vatNumber || 'Non specificata'}</Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2">Indirizzo</Typography>
+                  <Typography variant="body2">{profile.address || 'Non specificato'}</Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2">Referente</Typography>
+                  <Typography variant="body2">{profile.contactPerson || 'Non specificato'}</Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2">Descrizione</Typography>
+                  <Typography variant="body2">{profile.description || 'Non specificata'}</Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="subtitle2">Conto per l'invio dei pagamenti</Typography>
+                  <Typography variant="body2">{profile.paymentAccount || 'Non ancora configurato'}</Typography>
+                </Box>
+              </Stack>
+            )}
           </>
         )}
 
@@ -223,7 +269,7 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend,
                     <Typography variant="caption" color="text.secondary">
                       {formatDate(report.createdAt)}
                     </Typography>
-                    {report.status === 'OPEN' && (
+                    {!readOnly && report.status === 'OPEN' && (
                       <Box sx={{ mt: 0.5 }}>
                         <Button size="small" onClick={() => closeReport(report.id)}>
                           Archivia
@@ -238,7 +284,7 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend,
         )}
       </DialogContent>
       <DialogActions>
-        {user.status !== 'VALIDATED' && user.status !== 'DEACTIVATED' && (
+        {!readOnly && user.status !== 'VALIDATED' && user.status !== 'DEACTIVATED' && (
           <Button
             variant="contained"
             onClick={() => {
@@ -249,12 +295,12 @@ export default function UserDetailDialog({ user, onClose, onValidate, onSuspend,
             {user.status === 'SUSPENDED' ? 'Riattiva' : 'Valida'}
           </Button>
         )}
-        {user.status !== 'SUSPENDED' && user.status !== 'DEACTIVATED' && (
+        {!readOnly && user.status !== 'SUSPENDED' && user.status !== 'DEACTIVATED' && (
           <Button color="error" onClick={() => onSuspend(user)}>
             Sospendi
           </Button>
         )}
-        {user.status !== 'DEACTIVATED' && (
+        {!readOnly && user.status !== 'DEACTIVATED' && (
           <Button color="error" onClick={() => onDeactivate(user)}>
             Elimina
           </Button>

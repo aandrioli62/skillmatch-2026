@@ -10,6 +10,14 @@ export default function ProfessionalContracts() {
   const [contracts, setContracts] = useState(null)
   const [error, setError] = useState(null)
 
+  // Fetched live rather than trusting contract.commissionRate, which is only
+  // the platform default recorded when the contract was drafted — the admin
+  // may have changed the rate since, and the actual charge at payment time
+  // always uses whatever rate is current then, not what's stored on the
+  // contract. Used only for the pre-payment estimate below; once paid, the
+  // real transaction net amount is shown instead.
+  const [commissionRate, setCommissionRate] = useState(null)
+
   const [transactions, setTransactions] = useState([])
   const [reviewedProjectIds, setReviewedProjectIds] = useState(new Set())
 
@@ -36,6 +44,14 @@ export default function ProfessionalContracts() {
 
   useEffect(loadData, [])
 
+  useEffect(() => {
+    api
+      .get('/commission-config/current')
+      .then((res) => setCommissionRate(res.data.ratePercentage))
+      .catch(() => setCommissionRate(null))
+  }, [])
+
+  const transactionByContractId = new Map(transactions.map((tx) => [tx.contractId, tx]))
   const paidContractIds = new Set(transactions.map((tx) => tx.contractId))
 
   const signContract = (contract) => {
@@ -64,11 +80,16 @@ export default function ProfessionalContracts() {
           {contracts?.map((contract) => {
             const statusInfo = contractStatusInfo(contract.status)
             const isPaid = paidContractIds.has(contract.id)
+            const transaction = transactionByContractId.get(contract.id)
+            const rate = commissionRate ?? contract.commissionRate
+            const netAmount = isPaid
+              ? transaction.netAmount
+              : (contract.amount - (contract.amount * rate) / 100).toFixed(2)
             return (
               <ListItem key={contract.id} divider>
                 <ListItemText
                   primary={`Contratto #${shortId(contract.id)} — €${contract.amount}`}
-                  secondary={`Netto per te: €${(contract.amount - (contract.amount * contract.commissionRate) / 100).toFixed(2)}`}
+                  secondary={`Netto per te: €${netAmount}${isPaid ? '' : ' (stima)'}`}
                 />
                 <Stack direction="row" spacing={1} alignItems="center">
                   {contract.status === 'PENDING_SIGNATURES' && (

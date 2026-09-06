@@ -1,5 +1,4 @@
 import AddIcon from '@mui/icons-material/Add'
-import DeleteIcon from '@mui/icons-material/Delete'
 import {
   Alert,
   Box,
@@ -9,7 +8,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  IconButton,
   List,
   ListItem,
   ListItemText,
@@ -22,6 +20,7 @@ import {
 import { useEffect, useState } from 'react'
 import DataSection from '../../components/DataSection'
 import SkillPicker from '../../components/SkillPicker'
+import UserDetailDialog from '../../components/UserDetailDialog'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import api from '../../services/api'
 import { candidatureStatusInfo, formatDate, projectStatusInfo, reputationLevelInfo, shortId } from '../../utils/format'
@@ -31,7 +30,7 @@ const EMPTY_FORM = {
   description: '',
   durationDays: '',
   budget: '',
-  requirements: [{ skillName: '' }],
+  skillNames: [],
 }
 
 export default function CompanyProjects() {
@@ -45,6 +44,7 @@ export default function CompanyProjects() {
   const [candidates, setCandidates] = useState(null)
   const [candidatesError, setCandidatesError] = useState(null)
   const [actionError, setActionError] = useState(null)
+  const [detailTarget, setDetailTarget] = useState(null)
 
   const [publishTarget, setPublishTarget] = useState(null)
   const [completeTarget, setCompleteTarget] = useState(null)
@@ -98,10 +98,10 @@ export default function CompanyProjects() {
         const candidatures = res.data
         Promise.all(
           candidatures.map((c) =>
-            api
-              .get(`/users/${c.professionalId}/professional-profile`)
-              .then((profileRes) => ({ ...c, professionalProfile: profileRes.data }))
-              .catch(() => ({ ...c, professionalProfile: null })),
+            Promise.all([
+              api.get(`/users/${c.professionalId}/professional-profile`).then((res) => res.data).catch(() => null),
+              api.get(`/users/${c.professionalId}`).then((res) => res.data).catch(() => null),
+            ]).then(([professionalProfile, professionalUser]) => ({ ...c, professionalProfile, professionalUser })),
           ),
         ).then(setCandidates)
       })
@@ -137,24 +137,6 @@ export default function CompanyProjects() {
     setCreateOpen(true)
   }
 
-  const updateRequirement = (index, field, value) => {
-    setForm((prev) => ({
-      ...prev,
-      requirements: prev.requirements.map((req, i) => (i === index ? { ...req, [field]: value } : req)),
-    }))
-  }
-
-  const addRequirement = () => {
-    setForm((prev) => ({
-      ...prev,
-      requirements: [...prev.requirements, { skillName: '' }],
-    }))
-  }
-
-  const removeRequirement = (index) => {
-    setForm((prev) => ({ ...prev, requirements: prev.requirements.filter((_, i) => i !== index) }))
-  }
-
   const submitCreate = () => {
     setSubmitting(true)
     setCreateError(null)
@@ -164,9 +146,7 @@ export default function CompanyProjects() {
         description: form.description,
         durationDays: form.durationDays ? Number(form.durationDays) : null,
         budget: Number(form.budget),
-        requirements: form.requirements
-          .filter((r) => r.skillName.trim())
-          .map((r) => ({ skillName: r.skillName })),
+        requirements: form.skillNames.map((skillName) => ({ skillName })),
       })
       .then(() => {
         setMessage('Progetto creato in bozza.')
@@ -265,7 +245,13 @@ export default function CompanyProjects() {
                       primary={
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Tooltip title={candidate.professionalId}>
-                            <span>{fullName ?? `Professionista #${shortId(candidate.professionalId)}`}</span>
+                            <Typography
+                              component="span"
+                              onClick={() => candidate.professionalUser && setDetailTarget(candidate.professionalUser)}
+                              sx={candidate.professionalUser ? { cursor: 'pointer', textDecoration: 'underline' } : undefined}
+                            >
+                              {fullName ?? `Professionista #${shortId(candidate.professionalId)}`}
+                            </Typography>
                           </Tooltip>
                           {reputationInfo && (
                             <Chip label={reputationInfo.label} color={reputationInfo.color} size="small" variant="outlined" />
@@ -375,27 +361,12 @@ export default function CompanyProjects() {
               />
             </Stack>
 
-            <Typography variant="subtitle2">Competenze richieste</Typography>
-            {form.requirements.map((req, index) => (
-              <Stack direction="row" spacing={1} key={index} alignItems="center">
-                <SkillPicker
-                  label="Skill"
-                  value={req.skillName}
-                  onChange={(newValue) => updateRequirement(index, 'skillName', newValue)}
-                  sx={{ flex: 1 }}
-                />
-                <IconButton
-                  onClick={() => removeRequirement(index)}
-                  disabled={form.requirements.length === 1}
-                  size="small"
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Stack>
-            ))}
-            <Button startIcon={<AddIcon />} onClick={addRequirement} sx={{ alignSelf: 'flex-start' }}>
-              Aggiungi competenza
-            </Button>
+            <SkillPicker
+              multiple
+              label="Competenze richieste"
+              value={form.skillNames}
+              onChange={(newValue) => setForm({ ...form, skillNames: newValue })}
+            />
 
             {createError && (
               <Typography variant="body2" color="error">
@@ -417,6 +388,13 @@ export default function CompanyProjects() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <UserDetailDialog
+        key={detailTarget?.id ?? 'none'}
+        readOnly
+        user={detailTarget}
+        onClose={() => setDetailTarget(null)}
+      />
 
       <Snackbar open={Boolean(message)} autoHideDuration={4000} onClose={() => setMessage(null)} message={message} />
     </>

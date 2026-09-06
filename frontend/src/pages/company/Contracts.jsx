@@ -25,6 +25,14 @@ export default function CompanyContracts() {
   const [contracts, setContracts] = useState(null)
   const [error, setError] = useState(null)
 
+  // Fetched live rather than trusting contract.commissionRate, which is only
+  // the platform default recorded when the contract was drafted — the admin
+  // may have changed the rate since, and the actual charge at payment time
+  // always uses whatever rate is current then, not what's stored on the
+  // contract. Showing the live rate here keeps the pre-payment estimate
+  // consistent with what will really be charged.
+  const [commissionRate, setCommissionRate] = useState(null)
+
   const [transactions, setTransactions] = useState([])
   const [reviewedProjectIds, setReviewedProjectIds] = useState(new Set())
 
@@ -59,6 +67,13 @@ export default function CompanyContracts() {
   }
 
   useEffect(loadData, [])
+
+  useEffect(() => {
+    api
+      .get('/commission-config/current')
+      .then((res) => setCommissionRate(res.data.ratePercentage))
+      .catch(() => setCommissionRate(null))
+  }, [])
 
   const transactionByContractId = new Map(transactions.map((tx) => [tx.contractId, tx]))
 
@@ -127,7 +142,7 @@ export default function CompanyContracts() {
               <ListItem key={contract.id} divider>
                 <ListItemText
                   primary={`Contratto #${shortId(contract.id)} — €${contract.amount}`}
-                  secondary={`Professionista #${shortId(contract.professionalId)} — commissione ${contract.commissionRate}%`}
+                  secondary={`Professionista #${shortId(contract.professionalId)} — commissione ${commissionRate ?? contract.commissionRate}%`}
                 />
                 <Stack direction="row" spacing={1} alignItems="center">
                   {contract.status === 'DRAFT' && (
@@ -194,7 +209,8 @@ export default function CompanyContracts() {
         <DialogContent>
           <Typography variant="body2">
             Stai per pagare €{payTarget?.amount} per il contratto #{shortId(payTarget?.id)}. La piattaforma
-            tratterrà una commissione del {payTarget?.commissionRate}%. L'operazione non può essere annullata.
+            tratterrà una commissione del {commissionRate ?? payTarget?.commissionRate}%. L'operazione non può
+            essere annullata.
           </Typography>
           {payError && (
             <Typography variant="body2" color="error" sx={{ mt: 2 }}>

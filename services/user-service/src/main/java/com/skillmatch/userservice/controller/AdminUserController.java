@@ -1,5 +1,6 @@
 package com.skillmatch.userservice.controller;
 
+import com.skillmatch.userservice.dto.response.CompanyProfileResponse;
 import com.skillmatch.userservice.dto.response.ProfessionalProfileResponse;
 import com.skillmatch.userservice.dto.response.ReportResponse;
 import com.skillmatch.userservice.dto.response.UserResponse;
@@ -82,6 +83,29 @@ public class AdminUserController {
             @Parameter(description = "UUID of the professional", required = true)
             @PathVariable("userId") UUID userId) {
         return ResponseEntity.ok(userService.getProfessionalProfile(userId));
+    }
+
+    @Operation(
+            summary = "Get a company's profile",
+            description = "Returns the company profile (name, VAT, address, contact, description, payment "
+                    + "account) for a given user, regardless of validation status — used to identify an applicant "
+                    + "while reviewing a pending registration."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Profile returned",
+                    content = @Content(schema = @Schema(implementation = CompanyProfileResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Caller does not have ADMIN role",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "User not found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "422", description = "User is not a COMPANY",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @GetMapping("/{userId}/company-profile")
+    public ResponseEntity<CompanyProfileResponse> getCompanyProfile(
+            @Parameter(description = "UUID of the company", required = true)
+            @PathVariable("userId") UUID userId) {
+        return ResponseEntity.ok(userService.getCompanyProfile(userId));
     }
 
     @Operation(

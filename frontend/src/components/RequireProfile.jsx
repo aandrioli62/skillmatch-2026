@@ -13,7 +13,7 @@ export default function RequireProfile({ children }) {
   // — they only exist as a Keycloak realm role), so this safety net doesn't
   // apply to them at all; the hook call still happens (rules of hooks), its
   // result is just ignored below.
-  const { loading, notRegistered, refetch } = useCurrentUser()
+  const { user, loading, notRegistered, refetch } = useCurrentUser()
 
   const role = hasRole('PROFESSIONAL') ? 'PROFESSIONAL' : hasRole('COMPANY') ? 'COMPANY' : null
 
@@ -31,6 +31,17 @@ export default function RequireProfile({ children }) {
     return (
       <Box sx={{ display: 'flex', minHeight: '50vh', alignItems: 'center', justifyContent: 'center' }}>
         <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (!notRegistered && user?.status === 'SUSPENDED') {
+    return (
+      <Box sx={{ display: 'flex', minHeight: '50vh', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+        <Alert severity="error" sx={{ maxWidth: 480 }}>
+          Il tuo account è stato sospeso. Non puoi accedere a nessuna funzionalità della piattaforma finché un
+          amministratore non lo riattiva.
+        </Alert>
       </Box>
     )
   }
