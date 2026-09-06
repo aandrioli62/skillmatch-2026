@@ -247,15 +247,18 @@ services:
       # to call User Service outside any HTTP request context (the RabbitMQ listener has
       # no caller JWT to relay). Secret only, kept out of git — put it in a gitignored
       # infra/.env alongside the SMTP vars below: NOTIFICATION_SERVICE_CLIENT_SECRET=...
+      # Left unset, the stack still starts — only the 3 emails in NotificationServiceImpl
+      # (user.validated, candidature.accepted, payment.completed) silently fail to send;
+      # every in-app notification keeps working regardless. See docs for how to set these up.
       NOTIFICATION_SERVICE_CLIENT_ID: notification-service
-      NOTIFICATION_SERVICE_CLIENT_SECRET: ${NOTIFICATION_SERVICE_CLIENT_SECRET:?set in infra/.env — NOTIFICATION_SERVICE_CLIENT_SECRET=<value>}
+      NOTIFICATION_SERVICE_CLIENT_SECRET: ${NOTIFICATION_SERVICE_CLIENT_SECRET:-}
       # Brevo SMTP relay — real third-party credentials, must never be committed. Put
       # SMTP_USER / SMTP_PASSWORD / SMTP_FROM in a gitignored infra/.env file.
       SMTP_HOST: ${SMTP_HOST:-smtp-relay.brevo.com}
       SMTP_PORT: 587
-      SMTP_USER: ${SMTP_USER:?set in infra/.env — SMTP_USER=<brevo smtp login>}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:?set in infra/.env — SMTP_PASSWORD=<brevo smtp key>}
-      SMTP_FROM: ${SMTP_FROM:?set in infra/.env — SMTP_FROM=<verified sender address>}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       SMTP_FROM_DISPLAY_NAME: SkillMatch
       JAVA_OPTS: "-Xmx256m -Xms128m"
     ports:
