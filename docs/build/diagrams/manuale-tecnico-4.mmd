@@ -1,0 +1,52 @@
+flowchart TB
+    subgraph PRES["Presentation Layer"]
+        PC["ProjectController<br/>/api/v1/projects"]
+        CC["CandidatureController<br/>/api/v1/projects"]
+        REQ["DTO Request<br/>ProjectCreateRequest<br/>ProjectRequirementRequest<br/>CandidatureRequest"]
+        RESP["DTO Response<br/>ProjectResponse<br/>ProjectRequirementResponse<br/>CandidatureResponse"]
+        GEH["GlobalExceptionHandler<br/>@RestControllerAdvice"]
+        SEC["SecurityConfig<br/>OAuth2 Resource Server"]
+    end
+
+    subgraph BUS["Business Layer"]
+        PS["ProjectService (interfaccia)"]
+        PSI["ProjectServiceImpl"]
+        EPS["EventPublisherService"]
+        USC["UserServiceClient<br/>@CircuitBreaker su resolveCurrentUserId()"]
+        MAP["Mapper (MapStruct)<br/>ProjectMapper<br/>ProjectRequirementMapper<br/>CandidatureMapper"]
+    end
+
+    subgraph DATA["Data Layer"]
+        REPO["Repository (Spring Data JPA)<br/>ProjectRepository<br/>ProjectRequirementRepository<br/>CandidatureRepository"]
+        ENT["Entita JPA<br/>Project (ProjectStatus)<br/>ProjectRequirement<br/>Candidature (CandidatureStatus)"]
+        FLY["Flyway<br/>V1__create_projects.sql<br/>schema projectdb"]
+    end
+
+    RMQ[["RabbitMQ<br/>exchange skillmatch.events"]]
+    USVC[("User Service<br/>GET /api/v1/users/me<br/>GET /api/v1/users/{userId}")]
+
+    PC --> REQ
+    PC --> RESP
+    CC --> REQ
+    CC --> RESP
+    PC -- "resolveCurrentUserId()" --> USC
+    CC -- "resolveCurrentUserId()" --> USC
+    GEH -.intercetta eccezioni.-> PC
+    GEH -.intercetta eccezioni.-> CC
+    SEC -.protegge.-> PC
+    SEC -.protegge.-> CC
+
+    PC --> PS
+    CC --> PS
+    PS --> PSI
+    PSI --> MAP
+    PSI --> EPS
+    PSI --> REPO
+    PSI --> USC
+    MAP -.converte.-> ENT
+
+    USC -- "REST sincrona<br/>JWT inoltrato<br/>fallback: UserServiceUnavailableException" --> USVC
+    EPS -- "publish project.published<br/>candidature.submitted<br/>candidature.accepted<br/>project.completed" --> RMQ
+
+    REPO --> ENT
+    ENT --> FLY

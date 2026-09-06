@@ -1,0 +1,70 @@
+erDiagram
+    USERS ||--o| PROFESSIONAL_PROFILES : "ha (se role=PROFESSIONAL)"
+    USERS ||--o| COMPANY_PROFILES : "ha (se role=COMPANY)"
+    USERS ||--o{ PORTFOLIO_ITEMS : "possiede"
+    USERS }o--o{ SKILLS : "tramite USER_SKILLS"
+    USERS ||--o{ REPORTS : "presenta (reporter_id)"
+    USERS ||--o{ REPORTS : "e' segnalato (reported_user_id)"
+
+    USERS {
+        UUID id PK
+        VARCHAR keycloak_id UK
+        VARCHAR email UK
+        VARCHAR role
+        VARCHAR status
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    PROFESSIONAL_PROFILES {
+        UUID id PK
+        UUID user_id FK "UK"
+        VARCHAR first_name
+        VARCHAR last_name
+        TEXT bio
+        VARCHAR payment_account
+        VARCHAR reputation_level
+        NUMERIC avg_rating
+        INT total_reviews
+    }
+
+    COMPANY_PROFILES {
+        UUID id PK
+        UUID user_id FK "UK"
+        VARCHAR company_name
+        VARCHAR vat_number
+        TEXT address
+        VARCHAR contact_person
+        TEXT description
+        VARCHAR payment_account
+    }
+
+    SKILLS {
+        UUID id PK
+        VARCHAR name UK
+        VARCHAR category
+    }
+
+    USER_SKILLS {
+        UUID user_id PK,FK
+        UUID skill_id PK,FK
+        VARCHAR certification_url
+    }
+
+    PORTFOLIO_ITEMS {
+        UUID id PK
+        UUID user_id FK
+        VARCHAR title
+        TEXT description
+        VARCHAR url
+        TIMESTAMP created_at
+    }
+
+    REPORTS {
+        UUID id PK
+        UUID reporter_id FK
+        UUID reported_user_id FK
+        TEXT reason
+        VARCHAR status
+        TIMESTAMP created_at
+    }

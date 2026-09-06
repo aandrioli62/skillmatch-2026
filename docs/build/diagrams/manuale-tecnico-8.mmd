@@ -1,0 +1,20 @@
+erDiagram
+    FEEDBACK_ELIGIBILITY ||--o{ FEEDBACKS : "abilita (per project_id)"
+
+    FEEDBACK_ELIGIBILITY {
+        UUID id PK
+        UUID project_id UK
+        UUID company_id "rif. logico a User Service"
+        UUID professional_id "rif. logico a User Service"
+        TIMESTAMP enabled_at
+    }
+
+    FEEDBACKS {
+        UUID id PK
+        UUID project_id
+        UUID reviewer_id "rif. logico a User Service"
+        UUID reviewee_id "rif. logico a User Service"
+        INT rating
+        TEXT comment
+        TIMESTAMP created_at
+    }

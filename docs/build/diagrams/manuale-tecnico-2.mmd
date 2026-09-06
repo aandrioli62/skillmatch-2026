@@ -1,0 +1,73 @@
+flowchart TB
+    subgraph PRES["Presentation Layer"]
+        UC["UserController<br/>/api/v1/users"]
+        AUC["AdminUserController<br/>/api/v1/admin/users<br/>@PreAuthorize hasRole ADMIN"]
+        AUTC["AuthController<br/>/api/v1/auth<br/>endpoint pubblico, nessun JWT"]
+        SKC["SkillController<br/>/api/v1/skills"]
+        REPC["ReportController<br/>/api/v1/reports"]
+        ARC["AdminReportController<br/>/api/v1/admin/reports<br/>@PreAuthorize hasRole ADMIN"]
+        REQ["DTO Request<br/>UserRegistrationRequest<br/>ProfessionalProfileRequest<br/>CompanyProfileRequest<br/>SelfRegistrationRequest<br/>ProfessionalSkillRequest<br/>PortfolioItemRequest<br/>ReportRequest"]
+        RESP["DTO Response<br/>UserResponse<br/>ProfessionalProfileResponse<br/>CompanyProfileResponse<br/>SkillResponse<br/>ProfessionalSkillResponse<br/>PortfolioItemResponse<br/>ReportResponse"]
+        GEH["GlobalExceptionHandler<br/>@RestControllerAdvice"]
+        SEC["SecurityConfig<br/>OAuth2 Resource Server"]
+    end
+
+    subgraph BUS["Business Layer"]
+        US["UserService (interfaccia)"]
+        USI["UserServiceImpl"]
+        EPS["EventPublisherService"]
+        FEL["FeedbackEventListener<br/>@RabbitListener"]
+        KAC["KeycloakAdminClient<br/>Keycloak Admin REST API"]
+        MAP["Mapper (MapStruct)<br/>UserMapper<br/>ProfessionalProfileMapper<br/>CompanyProfileMapper<br/>SkillMapper<br/>PortfolioItemMapper"]
+    end
+
+    subgraph DATA["Data Layer"]
+        REPO["Repository (Spring Data JPA)<br/>UserRepository<br/>ProfessionalProfileRepository<br/>CompanyProfileRepository<br/>SkillRepository<br/>UserSkillRepository<br/>PortfolioItemRepository<br/>ReportRepository"]
+        ENT["Entita JPA<br/>User, ProfessionalProfile<br/>CompanyProfile, Skill<br/>UserSkill, PortfolioItem<br/>Report (ReportStatus)"]
+        FLY["Flyway<br/>V1__create_users.sql<br/>V2__seed_skills.sql<br/>V3__create_reports.sql<br/>V4__add_company_profile_fields.sql<br/>V5__add_deactivated_status.sql<br/>schema userdb"]
+    end
+
+    RMQ[["RabbitMQ<br/>exchange skillmatch.events"]]
+    KC[("Keycloak<br/>Admin REST API<br/>realm skillmatch")]
+
+    UC --> REQ
+    UC --> RESP
+    AUC --> RESP
+    AUTC --> REQ
+    AUTC --> RESP
+    SKC --> RESP
+    REPC --> REQ
+    REPC --> RESP
+    ARC --> RESP
+    UC --> US
+    AUC --> US
+    AUTC --> US
+    AUTC --> KAC
+    SKC --> US
+    REPC --> US
+    ARC --> US
+    GEH -.intercetta eccezioni.-> UC
+    GEH -.intercetta eccezioni.-> AUC
+    GEH -.intercetta eccezioni.-> AUTC
+    GEH -.intercetta eccezioni.-> REPC
+    GEH -.intercetta eccezioni.-> ARC
+    SEC -.protegge.-> UC
+    SEC -.protegge.-> AUC
+    SEC -.protegge.-> SKC
+    SEC -.protegge.-> REPC
+    SEC -.protegge.-> ARC
+
+    US --> USI
+    USI --> MAP
+    USI --> EPS
+    USI --> REPO
+    MAP -.converte.-> ENT
+
+    KAC -- "REST sincrona, grant password, client admin-cli" --> KC
+
+    EPS -- "publish user.registered<br/>user.validated" --> RMQ
+    RMQ -- "consuma feedback.aggregated" --> FEL
+    FEL --> USI
+
+    REPO --> ENT
+    ENT --> FLY

@@ -23,7 +23,6 @@ erDiagram
         UUID id PK
         UUID project_id FK
         VARCHAR skill_name
-        VARCHAR min_reputation_level
     }
 
     CANDIDATURES {
@@ -39,5 +38,5 @@ erDiagram
 ## Entità e vincoli principali
 
 - **projects**: rappresenta un progetto pubblicato da un'azienda. `company_id` è un riferimento logico cross-service allo User Service (nessuna FK fisica, poiché appartiene a un database diverso). `status` è vincolato da CHECK a `DRAFT`, `OPEN`, `ASSIGNED`, `IN_PROGRESS`, `COMPLETED`, `CLOSED`.
-- **project_requirements**: elenco dei requisiti di competenza richiesti da un progetto, in relazione 1:N con `projects` tramite `project_id` (`ON DELETE CASCADE`). `min_reputation_level` è opzionale e indica il livello minimo di reputazione richiesto per candidarsi.
+- **project_requirements**: elenco dei requisiti di competenza richiesti da un progetto, in relazione 1:N con `projects` tramite `project_id` (`ON DELETE CASCADE`). La colonna `min_reputation_level`, presente nello schema iniziale, è stata rimossa (`V2__drop_min_reputation_level.sql`): veniva raccolta alla creazione del progetto ma non era mai stata effettivamente applicata né in fase di candidatura né mostrata ai professionisti, un campo che avrebbe implicato una garanzia non realmente offerta dalla piattaforma.
 - **candidatures**: candidature dei professionisti ai progetti, in relazione 1:N con `projects`. `professional_id` è un riferimento logico cross-service allo User Service. `status` è vincolato da CHECK a `PENDING`, `ACCEPTED`, `REJECTED`, `WITHDRAWN` (default `PENDING`). Il vincolo `UNIQUE(project_id, professional_id)` impedisce a un professionista di candidarsi più volte allo stesso progetto.

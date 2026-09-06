@@ -1,0 +1,30 @@
+flowchart LR
+    subgraph Publishers
+        US["User Service"]
+        PS["Project Service"]
+        PAY["Payment Service"]
+        FS["Feedback Service"]
+    end
+
+    EX(["Topic Exchange<br/>skillmatch.events"])
+
+    subgraph Consumers
+        CS["Contract Service<br/>queue: contract.candidature.accepted"]
+        FSQ["Feedback Service<br/>queue: feedback.payment.completed"]
+        USQ["User Service<br/>queue: user-service.feedback.aggregated"]
+        NS["Notification Service<br/>queue: notification.all-events (#)"]
+    end
+
+    US -- "user.registered" --> EX
+    US -- "user.validated" --> EX
+    PS -- "project.published" --> EX
+    PS -- "candidature.submitted" --> EX
+    PS -- "candidature.accepted" --> EX
+    PS -- "project.completed" --> EX
+    PAY -- "payment.completed" --> EX
+    FS -- "feedback.aggregated" --> EX
+
+    EX -. "candidature.accepted" .-> CS
+    EX -. "payment.completed" .-> FSQ
+    EX -. "feedback.aggregated" .-> USQ
+    EX == "# (tutti gli eventi)" ==> NS

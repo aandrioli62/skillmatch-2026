@@ -26,7 +26,7 @@ sequenceDiagram
     MQ-->>US: feedback.aggregated
     Note over MQ,US: coda user-service.feedback.aggregated
     US->>US: Aggiorna professional_profiles: avg_rating, total_reviews, reputation_level
-    Note over US: Regola reputazione: Junior se media < 3.5 O recensioni < 3; Affidabile se media >= 3.5 E recensioni >= 3; Top Performer se media >= 4.5 E recensioni >= 10
+    Note over US: Regola reputazione: Junior se media inferiore a 3.5 o recensioni sotto 3, Affidabile se media almeno 3.5 e recensioni almeno 3, Top Performer se media almeno 4.5 e recensioni almeno 10
 
     MQ-->>NS: feedback.aggregated
     Note over MQ,NS: binding #

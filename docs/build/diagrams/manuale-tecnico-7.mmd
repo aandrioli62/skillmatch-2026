@@ -1,0 +1,34 @@
+erDiagram
+    TRANSACTIONS ||--|| INVOICES : "genera"
+
+    COMMISSION_CONFIG {
+        UUID id PK
+        NUMERIC rate_percentage
+        TIMESTAMP effective_from
+        UUID set_by_admin_id "rif. logico a User Service"
+    }
+
+    TRANSACTIONS {
+        UUID id PK
+        UUID contract_id "UK, rif. logico a Contract Service"
+        UUID company_id "rif. logico a User Service"
+        UUID professional_id "rif. logico a User Service"
+        NUMERIC total_amount
+        NUMERIC commission_amount
+        NUMERIC net_amount
+        VARCHAR status
+        TIMESTAMP created_at
+        TIMESTAMP completed_at
+    }
+
+    INVOICES {
+        UUID id PK
+        UUID transaction_id FK "UK"
+        VARCHAR invoice_number UK
+        UUID company_id "rif. logico a User Service"
+        NUMERIC total
+        NUMERIC commission
+        NUMERIC professional_fee
+        VARCHAR pdf_url
+        TIMESTAMP issued_at
+    }

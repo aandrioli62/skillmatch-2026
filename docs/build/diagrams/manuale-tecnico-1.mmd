@@ -1,0 +1,63 @@
+flowchart TB
+    Browser["Browser / Mobile<br/>React SPA"]
+
+    subgraph Edge["Edge"]
+        GW["API Gateway :8080<br/>Spring Cloud Gateway<br/>JWT validation, routing, circuit breaker"]
+    end
+
+    subgraph Identity["Identity"]
+        KC["Keycloak :8180<br/>Realm: skillmatch"]
+    end
+
+    subgraph Services["Microservizi di dominio"]
+        US["User Service :8081"]
+        PS["Project Service :8082"]
+        CS["Contract Service :8083"]
+        PAY["Payment Service :8084"]
+        FS["Feedback Service :8085"]
+        NS["Notification Service :8086"]
+    end
+
+    subgraph Broker["Message Broker"]
+        MQ["RabbitMQ<br/>topic exchange: skillmatch.events<br/>AMQP :5672, Management :15672"]
+    end
+
+    subgraph Data["Data Tier"]
+        PG["PostgreSQL :5432<br/>userdb, projectdb, contractdb<br/>paymentdb, feedbackdb, identitydb"]
+        MONGO["MongoDB :27017<br/>notificationdb"]
+    end
+
+    Browser -- "HTTPS" --> GW
+    Browser -- "OIDC Auth Code + PKCE" --> KC
+    GW -- "valida JWT (JWKS)" --> KC
+    GW -- "REST /api/v1/users/**" --> US
+    GW -- "REST /api/v1/projects/**" --> PS
+    GW -- "REST /api/v1/contracts/**" --> CS
+    GW -- "REST /api/v1/payments/**, /transactions/**" --> PAY
+    GW -- "REST /api/v1/feedbacks/**" --> FS
+    GW -- "REST /api/v1/notifications/**" --> NS
+
+    PS -. "REST sincrona: stato validazione" .-> US
+    CS -. "REST sincrona: stato validazione" .-> US
+    PAY -. "REST sincrona: stato validazione" .-> US
+    FS -. "REST sincrona: stato validazione" .-> US
+    NS -. "REST sincrona: stato validazione" .-> US
+    PAY -. "REST sincrona: dettagli contratto" .-> CS
+
+    US -- "publish" --> MQ
+    PS -- "publish" --> MQ
+    PAY -- "publish" --> MQ
+    FS -- "publish" --> MQ
+
+    MQ -. "consume" .-> CS
+    MQ -. "consume" .-> FS
+    MQ -. "consume" .-> US
+    MQ -. "consume: tutti gli eventi (#)" .-> NS
+
+    US --> PG
+    PS --> PG
+    CS --> PG
+    PAY --> PG
+    FS --> PG
+    KC --> PG
+    NS --> MONGO

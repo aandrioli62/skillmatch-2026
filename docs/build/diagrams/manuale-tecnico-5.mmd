@@ -1,0 +1,30 @@
+erDiagram
+    PROJECTS ||--o{ PROJECT_REQUIREMENTS : "richiede"
+    PROJECTS ||--o{ CANDIDATURES : "riceve"
+
+    PROJECTS {
+        UUID id PK
+        UUID company_id "rif. logico a User Service"
+        VARCHAR title
+        TEXT description
+        INT duration_days
+        NUMERIC budget
+        VARCHAR status
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    PROJECT_REQUIREMENTS {
+        UUID id PK
+        UUID project_id FK
+        VARCHAR skill_name
+    }
+
+    CANDIDATURES {
+        UUID id PK
+        UUID project_id FK
+        UUID professional_id "rif. logico a User Service"
+        VARCHAR status
+        TEXT cover_letter
+        TIMESTAMP applied_at
+    }

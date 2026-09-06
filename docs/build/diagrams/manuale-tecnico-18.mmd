@@ -1,0 +1,9 @@
+flowchart LR
+    PS[Project Service] -- "project.published" --> EX{{skillmatch.events<br/>topic exchange}}
+    PAY[Payment Service] -- "payment.completed" --> EX
+    FS[Feedback Service] -- "feedback.aggregated" --> EX
+
+    EX -- "project.published" --> QNS[notification.all-events<br/>binding: #]
+    EX -- "payment.completed" --> QNS
+    EX -- "feedback.aggregated" --> QNS
+    EX -- "payment.completed" --> QFB[feedback.payment.completed<br/>binding: payment.completed]

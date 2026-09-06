@@ -4,7 +4,7 @@
 |--------------|-------------------------------------------------|
 | **Status**   | Accepted                                        |
 | **Data**     | 2026-09-04                                      |
-| **Autore**   | Team SkillMatch                                 |
+| **Autore**   | Aura Andrioli                                   |
 | **Contesto** | Comunicazione asincrona tra microservizi        |
 
 ---

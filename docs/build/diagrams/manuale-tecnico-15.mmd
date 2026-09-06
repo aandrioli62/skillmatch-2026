@@ -1,0 +1,47 @@
+flowchart TB
+    User(["Utente<br/>Browser"])
+
+    subgraph GH["GitHub"]
+        Repo["Repository skillmatch<br/>(monorepo)"]
+        Actions["GitHub Actions<br/>build, test, buildx arm64"]
+        GHCR["GHCR<br/>ghcr.io/&lt;user&gt;/skillmatch/&lt;service&gt;:&lt;sha&gt;"]
+    end
+
+    subgraph Oracle["Oracle Cloud, VM Ampere A1 (ARM, Always Free)"]
+        subgraph K3s["K3s, namespace: skillmatch"]
+            Ingress["Ingress Traefik (default K3s)<br/>+ cert-manager (Let's Encrypt)<br/>host app: IP.nip.io<br/>host identity: keycloak.IP.nip.io"]
+
+            FE["frontend :80<br/>build statica React su Nginx"]
+
+            subgraph AppPods["Pod applicativi (Deployment + Service ClusterIP)"]
+                GW["api-gateway :8080"]
+                US["user-service :8081"]
+                PSVC["project-service :8082"]
+                CS["contract-service :8083"]
+                PAY["payment-service :8084"]
+                FS["feedback-service :8085"]
+                NS["notification-service :8086"]
+                KC["keycloak :8180"]
+            end
+
+            subgraph DataPods["StatefulSet"]
+                PG[("PostgreSQL<br/>userdb, projectdb, contractdb<br/>paymentdb, feedbackdb, identitydb")]
+                MONGO[("MongoDB<br/>notificationdb")]
+                MQ(["RabbitMQ<br/>skillmatch.events"])
+            end
+        end
+    end
+
+    User -- "HTTPS 443" --> Ingress
+    Ingress -- "/" --> FE
+    Ingress -- "/api" --> GW
+    Ingress -- "host keycloak.*" --> KC
+    GW --> US & PSVC & CS & PAY & FS & NS
+    US & PSVC & CS & PAY & FS & KC --> PG
+    NS --> MONGO
+    US & PSVC & CS & PAY & FS -.-> MQ
+
+    Repo -- "push su main<br/>(path-filtered)" --> Actions
+    Actions -- "docker buildx push" --> GHCR
+    Actions -- "ssh + kubectl set image" --> K3s
+    K3s -. "docker pull" .-> GHCR

@@ -4,7 +4,7 @@
 |--------------|---------------------------------------------|
 | **Status**   | Accepted                                    |
 | **Data**     | 2026-09-04                                  |
-| **Autore**   | Team SkillMatch                             |
+| **Autore**   | Aura Andrioli                               |
 | **Contesto** | Organizzazione del codice sorgente          |
 
 ---
@@ -13,7 +13,7 @@
 
 SkillMatch è composto da 7 microservizi backend, un frontend React e uno strato di infrastruttura (Docker Compose, manifesti Kubernetes, configurazione Keycloak). L'architettura a microservizi tipicamente convive con una strategia multi-repo, dove ogni servizio vive nel proprio repository Git indipendente, con permessi, versioning e pipeline CI/CD separati.
 
-Il vincolo determinante in questo progetto è la dimensione del team: la traccia d'esame impone esplicitamente un massimo di due studenti per gruppo. Gestire 7 repository per i microservizi, più uno per il frontend e uno per l'infrastruttura, significherebbe per 1-2 persone dover mantenere fino a 9 repository separati, con conseguente duplicazione di README, configurazione CI, issue tracker e cronologia Git frammentata su più progetti.
+Il vincolo determinante in questo progetto è che è sviluppato da una sola persona (la traccia d'esame consente il lavoro individuale in alternativa al gruppo di due). Gestire 7 repository per i microservizi, più uno per il frontend e uno per l'infrastruttura, significherebbe per una singola persona dover mantenere fino a 9 repository separati, con conseguente duplicazione di README, configurazione CI, issue tracker e cronologia Git frammentata su più progetti.
 
 ---
 
@@ -46,7 +46,7 @@ on:
 
 ---
 
-## Vantaggi concreti per un team di 1-2 persone
+## Vantaggi concreti per uno sviluppatore singolo
 
 - **Un solo posto per issue, pull request e documentazione**: nessuna necessità di decidere in quale dei 9 repository aprire un'issue che riguarda un flusso cross-service.
 - **Refactoring cross-service atomico**: cambiare il formato di un evento RabbitMQ (es. aggiungere un campo a `payment.completed`) tocca sia il Payment Service (publisher) sia il Feedback Service (consumer). In un monorepo questo è un'unica pull request con un unico commit atomico, revisionabile in un solo colpo d'occhio; in un multi-repo servirebbero due PR coordinate manualmente su due repository diversi, con il rischio di deployare un lato senza l'altro.
@@ -59,7 +59,7 @@ on:
 
 Le ragioni che normalmente motivano una strategia multi-repo in un'architettura a microservizi sono:
 
-- **Permessi granulari per team diversi**: utile quando team distinti sono responsabili di servizi distinti e non devono avere accesso in scrittura al codice degli altri team. Con un team di 1-2 persone che lavora su tutti i servizi, non esiste alcuna necessità di permessi differenziati.
+- **Permessi granulari per team diversi**: utile quando team distinti sono responsabili di servizi distinti e non devono avere accesso in scrittura al codice degli altri team. Con una sola persona che lavora su tutti i servizi, non esiste alcuna necessità di permessi differenziati.
 - **Dimensione del repository**: un monorepo con decine di microservizi e anni di storia può diventare pesante da clonare. Con 7 servizi Spring Boot di dimensioni contenute e una storia di poche settimane/mesi, questo problema non si presenta nella pratica.
 - **CI che gira su tutto il repository ad ogni push**: è il rischio concreto più rilevante di un monorepo, ma è già mitigato dai path filter per-servizio: ogni pipeline si attiva solo per il proprio sottoalbero di file, replicando l'isolamento di build che si avrebbe con repository separati.
 
@@ -69,7 +69,7 @@ Le ragioni che normalmente motivano una strategia multi-repo in un'architettura 
 
 | Alternativa | Motivo del rifiuto |
 |-------------|---------------------|
-| Un repository per microservizio (9 repository: 7 servizi + frontend + infra) | Overhead di coordinamento sproporzionato per un team di 1-2 persone entro una deadline fissa (agosto 2026); nessun beneficio di permessi granulari dato che non esistono team distinti da isolare |
+| Un repository per microservizio (9 repository: 7 servizi + frontend + infra) | Overhead di coordinamento sproporzionato per una singola persona entro una deadline fissa (agosto 2026); nessun beneficio di permessi granulari dato che non esistono team distinti da isolare |
 | Monorepo con un'unica pipeline CI che builda e testa tutto ad ogni push | Tempi di build inutilmente lunghi: un cambio a un singolo servizio innescherebbe la compilazione e il test di tutti gli altri 6, anche se non modificati; i path filter per-servizio già adottati ottengono lo stesso isolamento di build del multi-repo senza pagarne l'overhead organizzativo |
 
 ---
@@ -77,7 +77,7 @@ Le ragioni che normalmente motivano una strategia multi-repo in un'architettura 
 ## Conseguenze
 
 **Positive:**
-- Coordinamento semplificato per un team di 1-2 persone: un solo repository da clonare, un solo posto per issue/PR/documentazione.
+- Coordinamento semplificato per uno sviluppatore singolo: un solo repository da clonare, un solo posto per issue/PR/documentazione.
 - Refactoring cross-service (es. modifiche al contratto di un evento RabbitMQ) eseguibile in un'unica pull request atomica.
 - Pipeline CI/CD isolate per servizio grazie ai path filter, preservando l'indipendenza di build e deploy tipica dei microservizi.
 - Cronologia Git unificata, utile per la documentazione e la presentazione d'esame.
@@ -85,7 +85,7 @@ Le ragioni che normalmente motivano una strategia multi-repo in un'architettura 
 **Negative / Rischi:**
 - Richiede disciplina nel mantenere i servizi effettivamente indipendenti a livello di codice (nessun import diretto tra moduli `services/*`), dato che il monorepo non impone questo isolamento a livello di build come farebbero repository fisicamente separati.
 - Una configurazione errata dei path filter potrebbe far scattare pipeline non necessarie, o peggio, non far scattare una pipeline necessaria dopo una modifica.
-- Se il team dovesse crescere in futuro oltre 1-2 persone con esigenze di permessi differenziati per servizio, la strategia andrebbe rivista verso un multi-repo.
+- Se il progetto dovesse crescere in futuro oltre una singola persona con esigenze di permessi differenziati per servizio, la strategia andrebbe rivista verso un multi-repo.
 
 ---
 

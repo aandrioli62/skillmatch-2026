@@ -1,0 +1,10 @@
+erDiagram
+    NOTIFICATIONS {
+        STRING id PK
+        STRING eventType "routing key dell'evento origine"
+        UUID recipientId "rif. logico a User Service"
+        STRING message
+        MAP data "payload grezzo dell'evento, per riferimento/debug"
+        BOOLEAN read
+        INSTANT createdAt
+    }

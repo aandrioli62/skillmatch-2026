@@ -4,7 +4,7 @@
 |--------------|-----------------------------------------------|
 | **Status**   | Accepted                                      |
 | **Data**     | 2026-09-04                                    |
-| **Autore**   | Team SkillMatch                               |
+| **Autore**   | Aura Andrioli                                 |
 | **Contesto** | Decomposizione architetturale del sistema     |
 
 ---
@@ -15,7 +15,7 @@ SkillMatch nasce come progetto d'esame per il corso di Progettazione di Architet
 
 Il contesto reale del progetto impone però vincoli molto diversi da quelli di un'azienda che sceglie i microservizi per scalabilità o autonomia dei team:
 
-- Il team è composto da 1-2 persone (limite massimo imposto dalla traccia d'esame).
+- Il progetto è sviluppato da una sola persona (la traccia d'esame consente il lavoro individuale in alternativa al gruppo di due, previa comunicazione al docente), reso concretamente sostenibile solo grazie allo sviluppo assistito da agenti AI (vedi [ADR-008](ADR-008-ai-assisted-development.md)).
 - La deadline è fissata ad agosto 2026.
 - Il deploy di produzione avviene su una singola VM Oracle Cloud Always Free (Ampere A1, 4 OCPU, 24 GB RAM), condivisa tra tutti i componenti: 7 microservizi applicativi, API Gateway, Keycloak, RabbitMQ, PostgreSQL, MongoDB. Non esiste un cluster multi-nodo con risorse elastiche.
 - Non ci sono requisiti reali di scalabilità indipendente dei servizi, dato il carico atteso (demo d'esame, non produzione con utenti reali).
@@ -71,7 +71,7 @@ flowchart TB
 
 ## Il trade-off per un progetto accademico piccolo
 
-Adottare i microservizi per un team di 1-2 persone con una deadline fissa comporta un costo operativo reale, che va riconosciuto esplicitamente invece di ignorarlo:
+Adottare i microservizi per una singola persona con una deadline fissa comporta un costo operativo reale, che va riconosciuto esplicitamente invece di ignorarlo:
 
 - **7 pipeline CI/CD** da mantenere invece di una sola.
 - **7 database logici** da gestire, versionare (Flyway) e tenere coerenti.
@@ -105,7 +105,7 @@ In altre parole, il costo operativo aggiuntivo è il prezzo pagato per l'obietti
 - Il fallimento di un singolo servizio (es. Notification Service) non blocca le funzionalità core (es. pubblicazione progetti), specialmente in combinazione con il Circuit Breaker sull'API Gateway.
 
 **Negative / Rischi:**
-- Overhead operativo sproporzionato rispetto alla dimensione del team (1-2 persone) e al carico reale del sistema (demo d'esame).
+- Overhead operativo sproporzionato rispetto a una singola persona e al carico reale del sistema (demo d'esame).
 - Consumo di risorse più alto rispetto a un monolite equivalente: 7 JVM invece di 1, ciascuna tarata a `-Xmx256m -Xms128m` per stare nei 24 GB della VM Oracle Free Tier condivisi con Keycloak, RabbitMQ, PostgreSQL e MongoDB.
 - Debug distribuito più complesso: un singolo flusso di business attraversa più servizi, più log stream e più code RabbitMQ.
 - Necessità di gestire esplicitamente l'idempotenza dei consumer di eventi, dato che RabbitMQ non garantisce consegna esattamente una volta (vedi ADR-006).
@@ -122,3 +122,4 @@ In altre parole, il costo operativo aggiuntivo è il prezzo pagato per l'obietti
 | [ADR-003-database-strategy.md](ADR-003-database-strategy.md) | Dettaglio della strategia Database per Service |
 | [ADR-005-monorepo-strategy.md](ADR-005-monorepo-strategy.md) | Come i 7 microservizi convivono in un unico repository |
 | [ADR-006-event-driven-communication.md](ADR-006-event-driven-communication.md) | Dettaglio della comunicazione asincrona tra servizi |
+| [ADR-008-ai-assisted-development.md](ADR-008-ai-assisted-development.md) | Perché e come lo sviluppo è stato assistito da agenti AI, condizione che rende sostenibile questo scope per una singola persona |

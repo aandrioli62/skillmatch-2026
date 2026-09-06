@@ -1,4 +1,4 @@
-# CLAUDE-SERVICES.md — Service Implementation Details
+# CLAUDE-SERVICES.md: Service Implementation Details
 
 ## Shared Dependencies (all Spring Boot services)
 
@@ -245,6 +245,10 @@ CREATE TABLE project_requirements (
     skill_name VARCHAR(100) NOT NULL,
     min_reputation_level VARCHAR(20)
 );
+-- Nota (aggiornata dopo l'implementazione): min_reputation_level e' stata rimossa con
+-- una migrazione successiva (V2__drop_min_reputation_level.sql): veniva raccolta alla
+-- creazione del progetto ma non era mai stata applicata ne' mostrata ai professionisti.
+-- Vedi docs/er-diagrams/project-service-er.md per lo schema attuale.
 
 CREATE TABLE candidatures (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -537,7 +541,7 @@ GRANT ALL PRIVILEGES ON DATABASE feedbackdb TO skillmatch;
 
 ```bash
 #!/bin/bash
-# infra/scripts/setup-oracle-vm.sh — Run once on fresh Ubuntu 22.04 ARM VM
+# infra/scripts/setup-oracle-vm.sh: Run once on fresh Ubuntu 22.04 ARM VM
 
 set -e
 
@@ -801,3 +805,5 @@ jobs:
 1. UC-A1: Validazione iscrizione di un professionista
 2. UC-A2: Configurazione percentuale di commissione
 3. UC-A3: Monitoraggio transazioni e gestione segnalazioni/sospensioni
+
+> **Nota (aggiornata dopo l'implementazione)**: questa lista era la traccia minima iniziale. Il codice reale ha da tempo superato questi 9 casi d'uso (registrazione self-service via Keycloak Admin API, gestione skill/portfolio, rifiuto di una singola candidatura, segnalazioni tra le parti con revisione admin, filtri e totali aggregati sulle transazioni, ecc.) e i commenti `@Operation` nei controller citano codici `UC-*` che in alcuni punti sono stati rinumerati rispetto a questa tabella (es. `UC-P1` nel codice indica la consultazione dei progetti aperti, non più la registrazione). Non fare affidamento su questa sezione per l'elenco corrente dei casi d'uso: la fonte aggiornata è `docs/use-cases/` (un file per stakeholder, con endpoint reali ed effetti collaterali documentati).

@@ -4,7 +4,7 @@
 |--------------|--------------------------------------------|
 | **Status**   | Accepted                                   |
 | **Data**     | 2026-06-19                                 |
-| **Autore**   | Team SkillMatch                            |
+| **Autore**   | Aura Andrioli                              |
 | **Contesto** | Identity & Access Management del progetto  |
 
 ---
@@ -41,6 +41,9 @@ Si usa **Keycloak 26.0** come Identity Provider. Il realm `skillmatch` è defini
 | `bruteForceProtected`         | `true`        | Blocco account dopo 5 tentativi falliti            |
 | `passwordPolicy`              | lunghezza ≥ 8, almeno 1 maiuscola, 1 cifra, diverso da username | Sicurezza base OWASP |
 | `registrationEmailAsUsername` | `true`        | Email come identificatore univoco                  |
+| `registrationAllowed`         | `false`       | La registrazione nativa di Keycloak resta disattivata: la registrazione self-service passa dall'app, non dalla UI di Keycloak (vedi [ADR-007](ADR-007-self-service-registration.md)) |
+| `verifyEmail`                 | `true`        | Attivata insieme alla registrazione self-service, per confermare che l'indirizzo email inserito sia raggiungibile |
+| `resetPasswordAllowed`        | `true`        | Consente il recupero password autonomo dalla schermata di login di Keycloak         |
 
 ### Client 1: `skillmatch-spa`
 
@@ -72,6 +75,17 @@ Usato per comunicazioni service-to-service (es. api-gateway → user-service tra
 
 **Perché Client Credentials?**  
 I servizi backend non hanno utente umano associato. Client Credentials è il flow OAuth 2.0 designato per la machine-to-machine authentication. Token di 60 secondi minimizza il rischio di compromissione.
+
+**Uso reale nel sistema**: quasi tutte le chiamate REST sincrone service-to-service (es. Project Service → User Service) inoltrano semplicemente il JWT dell'utente che ha originato la richiesta, senza bisogno di un client separato. L'unico punto del sistema che ha davvero bisogno di Client Credentials è il Notification Service quando reagisce a un evento RabbitMQ: il listener non ha alcun utente collegato da cui inoltrare un token, ma deve comunque chiamare `GET /api/v1/users/{id}` sullo User Service per risolvere l'email del destinatario prima di inviare una notifica via email (vedi [docs/events.md](../events.md)). Per questo caso è stato definito un client dedicato, distinto da `skillmatch-m2m`:
+
+| Parametro | Valore |
+|---|---|
+| `clientId` | `notification-service` |
+| `serviceAccountsEnabled` | `true` |
+| `publicClient` | `false` |
+| `standardFlowEnabled` / `directAccessGrantsEnabled` | `false` |
+
+Il relativo secret è generato da Keycloak all'importazione del realm, non è mai committato, e viene iniettato al pod `notification-service` come variabile d'ambiente da un K8s Secret.
 
 ### Ruoli Realm
 
@@ -231,11 +245,38 @@ Lo script scrive il JSON in `infra/keycloak/skillmatch-realm.json`.
 
 Inclusi nel realm JSON **solo per sviluppo locale**. Devono essere rimossi o sostituiti con credenziali non committate in ambienti condivisi.
 
-| Username                   | Password         | Ruolo          |
-|----------------------------|------------------|----------------|
-| `admin@skillmatch.dev`     | `Admin1234!`     | `ADMIN`        |
-| `mario.rossi@example.com`  | `Professional1!` | `PROFESSIONAL` |
-| `hr@techcorp.com`          | `Company1234!`   | `COMPANY`      |
+| Username             | Email                          | Password             | Ruolo          |
+|----------------------|---------------------------------|-----------------------|----------------|
+| `test-admin`         | `admin@skillmatch.test`         | uguale allo username | `ADMIN`        |
+| `test-professional`  | `professional@skillmatch.test`  | uguale allo username | `PROFESSIONAL` |
+| `test-company`       | `company@skillmatch.test`       | uguale allo username | `COMPANY`      |
+
+---
+
+## Creazione di un Account ADMIN
+
+Gli account `PROFESSIONAL` e `COMPANY` si registrano autonomamente (self-service, `POST /api/v1/auth/register`, vedi [ADR-007](ADR-007-self-service-registration.md)), ma la creazione di un `ADMIN` è deliberatamente esclusa da questo flusso (`AuthController.rejectAdminRole`): un admin non può crearsi da solo. L'unico modo per crearne uno è lo script interattivo `infra/scripts/create-admin.sh`, eseguito da chi già possiede le credenziali admin di Keycloak (locale o VM).
+
+Lo script:
+- chiede email, nome e cognome del nuovo admin;
+- genera una password temporanea casuale;
+- crea l'utente in Keycloak e gli assegna il ruolo realm `ADMIN`;
+- stampa a schermo email e password temporanea, da comunicare all'admin su un canale sicuro.
+
+La password è marcata come `temporary: true`, una funzionalità nativa di Keycloak (non logica custom): al primo login, Keycloak obbliga automaticamente il cambio password prima di lasciar proseguire.
+
+A differenza di `PROFESSIONAL`/`COMPANY`, un `ADMIN` non ha una riga nel database dello User Service: l'identità Keycloak con il ruolo realm è sufficiente (vedi `frontend/src/hooks/useDisplayName.js`, che per questo motivo risolve il nome di un admin direttamente dal profilo Keycloak invece che da una chiamata a `/professional-profile` o `/company-profile`).
+
+**Uso:**
+
+```bash
+./infra/scripts/create-admin.sh
+# variabili d'ambiente opzionali (default per l'uso in locale):
+#   KEYCLOAK_URL, KEYCLOAK_ADMIN, KEYCLOAK_PASSWORD, REALM
+
+# contro la VM:
+KEYCLOAK_URL=https://keycloak.92.4.167.195.nip.io ./infra/scripts/create-admin.sh
+```
 
 ---
 
